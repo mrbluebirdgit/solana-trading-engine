@@ -1,0 +1,46 @@
+name: Verify integrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Integration to verify
+        required: true
+        default: telegram
+        type: choice
+        options:
+          - telegram
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-integrations
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify ${{ inputs.provider }} configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+      TELEGRAM_PHONE: ${{ secrets.TELEGRAM_PHONE }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Verify selected integration
+        run: node scripts/verify-integrations.mjs "${{ inputs.provider }}"

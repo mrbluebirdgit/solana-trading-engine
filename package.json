@@ -1,0 +1,15 @@
+{
+  "name": "solana-trading-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Credential-safe foundation for a modular Solana research and trading engine.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "verify:telegram": "node scripts/verify-integrations.mjs telegram",
+    "verify:telegram:local": "node --env-file=.env scripts/verify-integrations.mjs telegram"
+  }
+}

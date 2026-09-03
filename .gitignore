@@ -1,0 +1,27 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Local environment and secret material
+.env
+.env.*
+!.env.example
+.secrets/
+secrets/
+*.session
+*.session-journal
+*.key
+*.pem
+
+# Runtime data
+logs/
+data/
+*.log
+*.pid
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
