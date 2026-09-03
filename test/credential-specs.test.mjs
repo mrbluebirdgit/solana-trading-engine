@@ -16,6 +16,15 @@ test("accepts correctly formatted Telegram credentials", () => {
   assert.equal(result.checks.every((check) => check.ok), true);
 });
 
+test("accepts Telegram API ID values with a leading zero", () => {
+  const result = validateProvider("telegram", {
+    TELEGRAM_API_ID: "0123456",
+    TELEGRAM_API_HASH: "0123456789abcdef0123456789abcdef",
+  });
+
+  assert.equal(result.ok, true);
+});
+
 test("reports missing Telegram credentials without exposing values", () => {
   const result = validateProvider("telegram", {});
 

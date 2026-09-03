@@ -3,8 +3,8 @@ const credentialSpecs = Object.freeze({
     Object.freeze({
       name: "TELEGRAM_API_ID",
       description: "Telegram application identifier",
-      validate: (value) => /^[1-9]\d{3,12}$/.test(value),
-      invalidMessage: "must be 4-13 digits and cannot begin with zero",
+      validate: (value) => /^\d{4,13}$/.test(value),
+      invalidMessage: "must be 4-13 digits",
     }),
     Object.freeze({
       name: "TELEGRAM_API_HASH",
