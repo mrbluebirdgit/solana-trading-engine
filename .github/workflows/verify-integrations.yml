@@ -50,7 +50,7 @@ jobs:
         run: npm test
 
       - name: Verify Helius integration
-        run: node scripts/verify-integrations.mjs helius
+        run: node scripts/verify-helius-live.mjs
 
   verify-telegram:
     if: >-

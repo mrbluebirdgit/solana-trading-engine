@@ -44,7 +44,7 @@ Required secret name:
 
 - `HELIUS_API_KEY`
 
-Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius`, or post the exact owner-only command `/verify helius` on a repository issue, to validate its presence and formatting.
+Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius`, or post the exact owner-only command `/verify helius` on a repository issue, to validate its formatting and make a live, read-only mainnet RPC health request.
 
 ## Security boundaries
 

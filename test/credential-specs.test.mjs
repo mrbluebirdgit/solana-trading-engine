@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { validateProvider } from "../src/config/credential-specs.mjs";
+import { checkHeliusHealth } from "../src/integrations/helius/health.mjs";
 
 const validTelegramEnvironment = Object.freeze({
   TELEGRAM_API_ID: "1234567",
@@ -25,6 +26,33 @@ test("rejects a missing or malformed Helius API key", () => {
   assert.equal(
     validateProvider("helius", { HELIUS_API_KEY: "too short" }).ok,
     false,
+  );
+});
+
+test("accepts a healthy Helius mainnet RPC response", async () => {
+  const result = await checkHeliusHealth(validHeliusEnvironment.HELIUS_API_KEY, {
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({ jsonrpc: "2.0", id: 1, result: "ok" }),
+    }),
+  });
+
+  assert.deepEqual(result, { ok: true, network: "mainnet" });
+});
+
+test("reports a rejected Helius request without exposing the key", async () => {
+  await assert.rejects(
+    checkHeliusHealth(validHeliusEnvironment.HELIUS_API_KEY, {
+      fetchImpl: async () => ({ ok: false, status: 401 }),
+    }),
+    (error) => {
+      assert.match(error.message, /HTTP 401/);
+      assert.equal(
+        error.message.includes(validHeliusEnvironment.HELIUS_API_KEY),
+        false,
+      );
+      return true;
+    },
   );
 });
 
