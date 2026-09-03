@@ -23,7 +23,6 @@ Required secret names:
 
 - `TELEGRAM_API_ID`
 - `TELEGRAM_API_HASH`
-- `TELEGRAM_PHONE`
 
 Add those values as GitHub Actions repository secrets. Never put real values in `.env.example`, commits, issues, pull requests, screenshots, or chat.
 
@@ -35,7 +34,7 @@ On the future Mac, copy `.env.example` to `.env`, enter the same values locally,
 npm run verify:telegram:local
 ```
 
-The first Telegram authorization will be performed interactively on that Mac. Its login code, 2FA password, and generated session must remain local.
+The first Telegram authorization will be performed interactively on that Mac using Telegram's QR-login flow. A phone number is therefore not required as a GitHub secret. If code-based login is ever used as a fallback, enter the phone number only at the local prompt. The login code, 2FA password, phone number, and generated session must remain local.
 
 ## Security boundaries
 

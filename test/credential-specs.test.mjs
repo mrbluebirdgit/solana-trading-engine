@@ -6,14 +6,13 @@ import { validateProvider } from "../src/config/credential-specs.mjs";
 const validTelegramEnvironment = Object.freeze({
   TELEGRAM_API_ID: "1234567",
   TELEGRAM_API_HASH: "0123456789abcdef0123456789abcdef",
-  TELEGRAM_PHONE: "+15551234567",
 });
 
 test("accepts correctly formatted Telegram credentials", () => {
   const result = validateProvider("telegram", validTelegramEnvironment);
 
   assert.equal(result.ok, true);
-  assert.equal(result.checks.length, 3);
+  assert.equal(result.checks.length, 2);
   assert.equal(result.checks.every((check) => check.ok), true);
 });
 
@@ -29,7 +28,6 @@ test("rejects malformed credentials", () => {
   const result = validateProvider("telegram", {
     TELEGRAM_API_ID: "abc",
     TELEGRAM_API_HASH: "not-a-hash",
-    TELEGRAM_PHONE: "555-1234",
   });
 
   assert.equal(result.ok, false);

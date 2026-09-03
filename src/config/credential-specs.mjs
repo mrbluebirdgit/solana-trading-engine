@@ -12,12 +12,6 @@ const credentialSpecs = Object.freeze({
       validate: (value) => /^[a-f0-9]{32}$/i.test(value),
       invalidMessage: "must be exactly 32 hexadecimal characters",
     }),
-    Object.freeze({
-      name: "TELEGRAM_PHONE",
-      description: "Telegram account phone number",
-      validate: (value) => /^\+[1-9]\d{7,14}$/.test(value),
-      invalidMessage: "must use E.164 format, for example +15551234567",
-    }),
   ]),
 });
 

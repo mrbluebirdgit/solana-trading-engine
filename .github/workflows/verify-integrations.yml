@@ -26,7 +26,6 @@ jobs:
     env:
       TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
       TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
-      TELEGRAM_PHONE: ${{ secrets.TELEGRAM_PHONE }}
 
     steps:
       - name: Check out repository
