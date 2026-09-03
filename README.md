@@ -26,7 +26,7 @@ Required secret names:
 
 Add those values as GitHub Actions repository secrets. Never put real values in `.env.example`, commits, issues, pull requests, screenshots, or chat.
 
-To verify repository-secret formatting, manually run the **Verify integrations** workflow from the Actions tab. The workflow never prints secret values and is not triggered by pull requests.
+To verify repository-secret formatting, manually run the **Verify integrations** workflow from the Actions tab or post the exact owner-only command `/verify telegram` on a repository issue. The workflow never prints secret values and is not triggered by pull requests.
 
 On the future Mac, copy `.env.example` to `.env`, enter the same values locally, and run:
 
@@ -44,7 +44,7 @@ Required secret name:
 
 - `HELIUS_API_KEY`
 
-Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius` to validate its presence and formatting.
+Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius`, or post the exact owner-only command `/verify helius` on a repository issue, to validate its presence and formatting.
 
 ## Security boundaries
 

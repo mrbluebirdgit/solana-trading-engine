@@ -11,6 +11,9 @@ on:
         options:
           - helius
           - telegram
+  issue_comment:
+    types:
+      - created
 
 permissions:
   contents: read
@@ -20,12 +23,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify:
-    name: Verify ${{ inputs.provider }} configuration
+  verify-helius:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.provider == 'helius') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify helius')
+    name: Verify Helius configuration
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Verify Helius integration
+        run: node scripts/verify-integrations.mjs helius
+
+  verify-telegram:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.provider == 'telegram') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify telegram')
+    name: Verify Telegram configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
       TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
       TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
 
@@ -43,5 +79,5 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      - name: Verify selected integration
-        run: node scripts/verify-integrations.mjs "${{ inputs.provider }}"
+      - name: Verify Telegram integration
+        run: node scripts/verify-integrations.mjs telegram
