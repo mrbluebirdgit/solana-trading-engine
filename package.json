@@ -9,6 +9,8 @@
   },
   "scripts": {
     "test": "node --test",
+    "verify:helius": "node scripts/verify-integrations.mjs helius",
+    "verify:helius:local": "node --env-file=.env scripts/verify-integrations.mjs helius",
     "verify:telegram": "node scripts/verify-integrations.mjs telegram",
     "verify:telegram:local": "node --env-file=.env scripts/verify-integrations.mjs telegram"
   }

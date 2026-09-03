@@ -9,6 +9,7 @@ on:
         default: telegram
         type: choice
         options:
+          - helius
           - telegram
 
 permissions:
@@ -24,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
+      HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
       TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
       TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
 

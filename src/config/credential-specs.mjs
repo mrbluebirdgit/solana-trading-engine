@@ -1,4 +1,12 @@
 const credentialSpecs = Object.freeze({
+  helius: Object.freeze([
+    Object.freeze({
+      name: "HELIUS_API_KEY",
+      description: "Helius project API key",
+      validate: (value) => /^[A-Za-z0-9_-]{16,128}$/.test(value),
+      invalidMessage: "must be a 16-128 character Helius API key",
+    }),
+  ]),
   telegram: Object.freeze([
     Object.freeze({
       name: "TELEGRAM_API_ID",

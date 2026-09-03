@@ -36,6 +36,16 @@ npm run verify:telegram:local
 
 The first Telegram authorization will be performed interactively on that Mac using Telegram's QR-login flow. A phone number is therefore not required as a GitHub secret. If code-based login is ever used as a fallback, enter the phone number only at the local prompt. The login code, 2FA password, phone number, and generated session must remain local.
 
+## Helius configuration
+
+Helius supplies the Solana RPC, transaction, and webhook infrastructure used to monitor wallets and on-chain events.
+
+Required secret name:
+
+- `HELIUS_API_KEY`
+
+Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius` to validate its presence and formatting.
+
 ## Security boundaries
 
 - No wallet seed phrase or private signing key belongs in GitHub, ChatGPT, logs, or screenshots.

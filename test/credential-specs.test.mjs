@@ -8,6 +8,26 @@ const validTelegramEnvironment = Object.freeze({
   TELEGRAM_API_HASH: "0123456789abcdef0123456789abcdef",
 });
 
+const validHeliusEnvironment = Object.freeze({
+  HELIUS_API_KEY: "01234567-89ab-cdef-0123-456789abcdef",
+});
+
+test("accepts a correctly formatted Helius API key", () => {
+  const result = validateProvider("helius", validHeliusEnvironment);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.checks.length, 1);
+  assert.equal(result.checks[0].ok, true);
+});
+
+test("rejects a missing or malformed Helius API key", () => {
+  assert.equal(validateProvider("helius", {}).ok, false);
+  assert.equal(
+    validateProvider("helius", { HELIUS_API_KEY: "too short" }).ok,
+    false,
+  );
+});
+
 test("accepts correctly formatted Telegram credentials", () => {
   const result = validateProvider("telegram", validTelegramEnvironment);
 
