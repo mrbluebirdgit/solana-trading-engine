@@ -1,4 +1,12 @@
 const credentialSpecs = Object.freeze({
+  birdeye: Object.freeze([
+    Object.freeze({
+      name: "BIRDEYE_API_KEY",
+      description: "Birdeye Data read-only API key",
+      validate: (value) => /^[!-~]{16,512}$/.test(value),
+      invalidMessage: "must be 16-512 non-whitespace characters",
+    }),
+  ]),
   gmgn: Object.freeze([
     Object.freeze({
       name: "GMGN_API_KEY",
