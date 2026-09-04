@@ -10,7 +10,7 @@ export async function checkGmgnReadAccess(
     execFileImpl = execFileAsync,
     environment = process.env,
     platform = process.platform,
-    timeoutMs = 30_000,
+    timeoutMs = 120_000,
   } = {},
 ) {
   const credential = apiKey?.trim() ?? "";
