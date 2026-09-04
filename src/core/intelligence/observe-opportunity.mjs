@@ -1,6 +1,7 @@
 import { collectPumpStageFromHelius } from "../../integrations/helius/pump-stage-collector.mjs";
 import { quoteIntendedSize } from "../../integrations/jupiter/intended-size.mjs";
 import { formatOpportunityAlert } from "../alerts/observation-alert.mjs";
+import { evaluateOpportunity } from "../decision/evaluate-opportunity.mjs";
 
 export async function observeOpportunity({
   heliusApiKey,
@@ -39,6 +40,13 @@ export async function observeOpportunity({
     abstentionReason: stage.abstentionReason ?? quoteError,
   });
 
+  const decision = evaluateOpportunity({
+    stage,
+    quotes,
+    quoteError,
+    now,
+  });
+
   return Object.freeze({
     schemaVersion: 1,
     sourceMethodVersion: "observe-opportunity.v1",
@@ -46,6 +54,7 @@ export async function observeOpportunity({
     quotes,
     quoteError,
     alert,
+    decision,
     runtimeAuthority: false,
   });
 }
