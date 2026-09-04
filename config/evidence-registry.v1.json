@@ -26,7 +26,7 @@
       "title": "Pump.fun public documentation and IDLs",
       "url": "https://github.com/pump-fun/pump-public-docs",
       "confidence": "high",
-      "limits": "Must pin and verify the deployed program and IDL version."
+      "limits": "Must pin and verify the deployed program and IDL version; curve completion, PumpSwap migration and initial LP handling are separate facts."
     },
     {
       "id": "JUPITER_SWAP_DOCS",
@@ -42,7 +42,7 @@
       "title": "Jito low-latency transaction send",
       "url": "https://docs.jito.wtf/lowlatencytxnsend/",
       "confidence": "high",
-      "limits": "Bundle or send acceptance is not landing; the low-latency send path skips preflight."
+      "limits": "Bundle or send acceptance is not landing; exact landed-bundle evidence requires status, landing slot and included transaction signatures, and the low-latency send path skips preflight."
     },
     {
       "id": "HELIUS_DOCS",
@@ -165,6 +165,70 @@
       "limits": "Requires a truthful record of trials and assumptions about return dependence."
     },
     {
+      "id": "PUMP_FEES_2026",
+      "type": "official_protocol_documentation",
+      "title": "Pump.fun fees and SOL/USDC quote support",
+      "url": "https://pump.fun/docs/fees",
+      "confidence": "high",
+      "limits": "Fee and quote-mint behavior is versioned and can change; current documentation is not a predictive model."
+    },
+    {
+      "id": "DEXSCREENER_DOCS",
+      "type": "official_provider_documentation",
+      "title": "DEX Screener API and Trending documentation",
+      "url": "https://docs.dexscreener.com/api/reference",
+      "confidence": "high",
+      "limits": "The public pair API does not document unique-maker counts, and Trending does not publish weights or decision thresholds."
+    },
+    {
+      "id": "BIRDEYE_DATA_DOCS",
+      "type": "official_provider_documentation",
+      "title": "Birdeye token trade and holder data documentation",
+      "url": "https://data.birdeye.so/docs/data-api/stats/get-defi-v3-token-trade-data-single",
+      "confidence": "high",
+      "limits": "Token/pair scope, chain support, wallet/token-account mode, windows and credit costs vary by endpoint."
+    },
+    {
+      "id": "GMGN_MARKET_SKILL",
+      "type": "official_provider_documentation",
+      "title": "GMGN market field and safe-preset reference",
+      "url": "https://github.com/GMGNAI/gmgn-skills/blob/main/skills/gmgn-market/SKILL.md",
+      "confidence": "medium",
+      "limits": "Vendor labels and example cutoffs are provider-specific; published descriptions of bundler_rate do not establish one denominator, while bundler_trader_amount_rate is a trading-volume ratio."
+    },
+    {
+      "id": "AXIOM_PULSE_DOCS",
+      "type": "official_provider_documentation",
+      "title": "Axiom Pulse and bundle-checker documentation",
+      "url": "https://docs.axiom.trade/axiom/finding-tokens/pulse",
+      "confidence": "medium",
+      "limits": "Documents product fields and potential-bundle heuristics, not calibrated profitability thresholds."
+    },
+    {
+      "id": "X_POST_COUNTS_DOCS",
+      "type": "official_provider_documentation",
+      "title": "X Post Counts API",
+      "url": "https://docs.x.com/x-api/posts/counts/introduction",
+      "confidence": "high",
+      "limits": "Counts measure matching posts, not unique humans, sentiment quality, ownership or causal price impact."
+    },
+    {
+      "id": "TELEGRAM_BOT_FAQ",
+      "type": "official_provider_documentation",
+      "title": "Telegram Bot API visibility rules",
+      "url": "https://core.telegram.org/bots/faq#what-messages-will-my-bot-get",
+      "confidence": "high",
+      "limits": "Collection coverage depends on chat membership, admin/privacy mode, and bots cannot see messages from other bots."
+    },
+    {
+      "id": "GRW_2026",
+      "type": "research_preprint_with_corrections",
+      "title": "Pump.fun Graduation Regime Windows",
+      "url": "https://arxiv.org/abs/2607.02823v3",
+      "confidence": "medium_low",
+      "limits": "Effective collection was about six minutes, graduation is not net return, and the reported rate is a fast-window lower bound rather than a 24-hour estimate."
+    },
+    {
       "id": "POLICY_V1",
       "type": "internal_policy",
       "title": "Current versioned policy",
@@ -190,8 +254,8 @@
       "eligibleUse": "hard_gate",
       "promotionState": "PAPER_ONLY",
       "requiresLocalCalibration": false,
-      "claim": "Decode authorities and all supported Token-2022 extensions; reject unsupported or presently unsellable behavior.",
-      "limits": "A capability is not proof of fraud; the exclusion is a risk policy.",
+      "claim": "Decode mint and freeze authorities and all supported Token-2022 extensions at every venue stage; reject unsupported or presently unsellable behavior.",
+      "limits": "Bonding-curve stage does not make authority state not applicable. Unknown stays unknown; an active capability is not proof of fraud and exclusion is a risk policy.",
       "sourceIds": ["SOLANA_TOKEN_DOCS", "SOLRUG_2026"]
     },
     {
@@ -451,8 +515,108 @@
       "promotionState": "RESEARCH_ONLY",
       "requiresLocalCalibration": false,
       "claim": "Graduation, migration, LP handling or renounced authority does not prove fair distribution, sellability or profit.",
-      "limits": "Verify current state, distribution, executable exit and post-migration behavior separately.",
+      "limits": "Verify current state, distribution, executable exit, canonical pool and post-migration behavior separately; generic present-time LP burn status is insufficient.",
       "sourceIds": ["PUMP_PUBLIC_DOCS", "MELT_2026", "PUMP_SUCCESS_2026"]
+    },
+    {
+      "id": "protocol.pump_stage_current_config",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Emit pump_curve_active for complete=false, migration_pending for complete=true without the canonical PumpSwap pool, and pumpswap_amm only when that pool exists, using pinned current program and account configuration.",
+      "limits": "Curve completion is not completed migration. Roughly 69000 USD or 85 SOL is current default-SOL configuration shorthand, non-universal, and deprecated as a lifecycle-stage classifier.",
+      "sourceIds": ["PUMP_PUBLIC_DOCS", "PUMP_FEES_2026"]
+    },
+    {
+      "id": "protocol.pump_migration_and_initial_lp",
+      "classification": "PROTOCOL_FACT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Current canonical Pump migration is a separate permissionless and idempotent PumpSwap operation, and its initial LP issuance is burned.",
+      "limits": "The legacy Raydium withdrawal path is disabled. Later PumpSwap deposits can mint LP and withdrawals can redeem it, so generic current LP burn or supply status cannot prove canonical migration or deployer control.",
+      "sourceIds": ["PUMP_PUBLIC_DOCS"]
+    },
+    {
+      "id": "data.market_participation_stack",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Measure aligned executed flow, raw and entity-adjusted breadth, ownership change, concentration, executable depth and mint-linked attention jointly.",
+      "limits": "No component or fixed public threshold is a universal buy signal; address counts remain Sybil-sensitive.",
+      "sourceIds": ["MELT_2026", "PUMP_SUCCESS_2026", "DEXSCREENER_DOCS", "BIRDEYE_DATA_DOCS"]
+    },
+    {
+      "id": "data.typed_launch_cohorts",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Keep same-slot candidates, landed exact-Jito bundles, funding-linked clusters, supply shares and retained shares in separate versioned cohorts; store provider labels outside those cohorts with explicit denominators.",
+      "limits": "Exact Jito requires landed status, landing slot and included signatures. Even exact membership proves coordinated submission rather than common beneficial ownership or malicious intent; GMGN bundler_rate remains unspecified while bundler_trader_amount_rate is trading-volume share.",
+      "sourceIds": ["JITO_SEND_DOCS", "MELT_2026", "GMGN_MARKET_SKILL", "AXIOM_PULSE_DOCS"]
+    },
+    {
+      "id": "execution.size_specific_depth",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Evaluate entry and full-exit feasibility using fresh quotes and simulation for the intended notional rather than absolute liquidity alone.",
+      "limits": "A current successful quote cannot guarantee future exit liquidity or a realized fill.",
+      "sourceIds": ["JUPITER_SWAP_DOCS", "SOLANA_RPC_DOCS", "BIRDEYE_DATA_DOCS"]
+    },
+    {
+      "id": "alpha.social_presence_target_specific",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Test exact-mint-linked social presence, independent-author breadth and attention change separately for graduation, adverse outcomes and net follower return.",
+      "limits": "A recent fast-window study found a graduation association but had material coverage limitations and did not establish follower profit.",
+      "sourceIds": ["GRW_2026", "SOCIAL_CFR_2024", "SOCIAL_PLOS_2023", "X_POST_COUNTS_DOCS"]
+    },
+    {
+      "id": "policy.supplied_phase_presets",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Supplied new-pair, curve, migration, post-graduation, copy, exit and risk bands are retained only as named research candidates.",
+      "limits": "No reviewed source establishes the full preset stack or its exact dollar, count, percentage and time thresholds as return-optimal.",
+      "sourceIds": ["POLICY_V1", "MELT_2026", "PUMP_SUCCESS_2026", "GMGN_MARKET_SKILL", "AXIOM_PULSE_DOCS"]
+    },
+    {
+      "id": "shortcut.fixed_graduation_threshold",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "The roughly 69000 USD or 85 SOL shorthand associated with the current default-SOL configuration cannot identify Pump lifecycle stage.",
+      "limits": "It is non-universal across program parameters, quote mint, SOL price and config versions; inspect curve completion and canonical PumpSwap-pool state.",
+      "sourceIds": ["PUMP_PUBLIC_DOCS", "PUMP_FEES_2026"]
+    },
+    {
+      "id": "shortcut.curve_authority_not_applicable",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Mint or freeze authority cannot be represented as not applicable solely because a token is on a Pump bonding curve.",
+      "limits": "Read canonical authority state; preserve unknown on collection failure and apply any active-authority rejection as an explicit risk policy.",
+      "sourceIds": ["SOLANA_TOKEN_DOCS", "PUMP_PUBLIC_DOCS"]
+    },
+    {
+      "id": "shortcut.volume_equals_demand",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Raw volume or transaction count cannot be labeled organic demand without participation, route and manipulation evidence.",
+      "limits": "Turnover can be concentrated, routed, circular, wash-generated or split across Sybil wallets.",
+      "sourceIds": ["MELT_2026", "DEXSCREENER_DOCS", "BIRDEYE_DATA_DOCS"]
     },
     {
       "id": "shortcut.llm_authorizes_or_signs",
@@ -466,4 +630,3 @@
     }
   ]
 }
-
