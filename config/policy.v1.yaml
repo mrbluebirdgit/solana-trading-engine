@@ -1,0 +1,124 @@
+{
+  "$schema": "./policy.schema.json",
+  "policyVersion": "1.0.0",
+  "projectName": "solana-trading-engine",
+  "status": "LIVE_LOCKED",
+  "chain": "solana",
+  "venues": [
+    "pump_fun_bonding_curve",
+    "pumpswap",
+    "jupiter_supported_routes"
+  ],
+  "operatingMode": {
+    "liveTrading": false,
+    "paperTradingRequired": true,
+    "explicitActivationPhrase": "ENABLE LIVE TRADING",
+    "failClosed": true
+  },
+  "alerts": {
+    "minimumSingleBuyUsd": 10000,
+    "trackSmallerTradesForScoring": true,
+    "immediateForTierAAndB": true
+  },
+  "freshnessAndExecution": {
+    "maximumSignalDataAgeSeconds": 15,
+    "maximumCopyPriceMovePercent": 15,
+    "maximumPriceImpactPercent": 2,
+    "maximumSlippagePercent": 8,
+    "requireFreshQuote": true,
+    "requireTransactionSimulation": true,
+    "requireMevProtectionWhenAvailable": true,
+    "requireRecognizedInstructionsOnly": true
+  },
+  "portfolioRisk": {
+    "initialPositionPercentOfTradingBankroll": 0.25,
+    "maximumSinglePositionPercentOfTradingBankroll": 1,
+    "maximumOpenPositions": 3,
+    "maximumTotalExposurePercentOfTradingBankroll": 5,
+    "dailyLossKillSwitchPercent": 2,
+    "weeklyLossKillSwitchPercent": 5,
+    "maximumConsecutiveLossesBeforePause": 3,
+    "noLeverage": true,
+    "noBorrowing": true,
+    "noAveragingDown": true,
+    "noMartingale": true
+  },
+  "entityScoring": {
+    "weights": {
+      "repeatSuccessAcrossDistinctTokens": 25,
+      "realizedRiskAdjustedResults": 20,
+      "earlyEntryAlphaWithoutInsiderEvidence": 15,
+      "disciplinedExitsAndDrawdowns": 10,
+      "recentContinuedActivity": 10,
+      "profitDiversificationAndSampleSize": 10,
+      "dataAndEntityLinkConfidence": 10
+    },
+    "tiers": {
+      "tierA": {
+        "minimumScore": 75,
+        "mode": "priority_alert_and_paper_copy"
+      },
+      "tierB": {
+        "minimumScore": 60,
+        "maximumScore": 74,
+        "mode": "alert_and_probation"
+      },
+      "tierC": {
+        "maximumScore": 59,
+        "mode": "research_only"
+      }
+    },
+    "neverCountRelatedWalletsAsIndependent": true,
+    "neverMergeOnSharedExchangeFundingAlone": true,
+    "severeIntegrityFlagsDisqualify": true,
+    "rerankDailyWithTimeDecay": true
+  },
+  "discovery": {
+    "volumeAccelerationMinimumMultiple": 10,
+    "holderGrowthMinimumPercent24h": 30,
+    "trendingWindowHours": 3,
+    "excludeStableWrappedAndLiquidStakingAssets": true,
+    "socialViralityAloneCanAuthorizeTrade": false,
+    "requireMultipleUnrelatedSocialCommunities": true,
+    "avoidNearZeroBaselineDistortion": true
+  },
+  "tokenSafety": {
+    "minimumIndependentDataSources": 2,
+    "requireCanonicalProgramAndVenue": true,
+    "requireAuthorityAndToken2022Inspection": true,
+    "requireSellConstructionAndSimulation": true,
+    "requireCreatorHistoryAndFundingReview": true,
+    "requireBundleWashAndSelfSwapDetection": true,
+    "bondingCurve": {
+      "earliestUnvalidatedReserveCandidatesAreAlertOnly": true,
+      "doNotApplyOrdinaryLpRules": true,
+      "requireRealCurveStateAndReserves": true
+    },
+    "graduated": {
+      "minimumLiquiditySol": 30,
+      "maximumTop10HolderPercent": 25,
+      "maximumBundlerOrRelatedEarlyHolderPercent": 10,
+      "maximumMarketCapUsdForEarlyGrowth": 3000000,
+      "minimumIndependentTierAEntitiesForAutoExecution": 3,
+      "requireMintAndFreezeAuthoritiesRevokedWhenApplicable": true,
+      "requireVerifiedLpStateWhenApplicable": true
+    }
+  },
+  "paperAcceptance": {
+    "minimumCompletedEligibleSignals": 100,
+    "minimumCalendarDays": 7,
+    "requirePositiveOutOfSampleExpectancyAfterCosts": true,
+    "requireNoCriticalSecurityOrReconciliationDefects": true,
+    "modelLatencyFeesSlippageImpactFailuresAndUnsellablePositions": true,
+    "preventLookAheadAndSurvivorshipBias": true
+  },
+  "signerSecurity": {
+    "dedicatedBalanceCappedWalletOnly": true,
+    "mainWalletForbidden": true,
+    "seedPhraseAndRawPrivateKeyForbiddenOutsideSigner": true,
+    "allowlistedProgramsAndTransactionShapesOnly": true,
+    "arbitraryTransfersForbidden": true,
+    "deterministicCodeEnforcesEveryTradeGate": true,
+    "modelExcludedFromSigningPath": true
+  }
+}

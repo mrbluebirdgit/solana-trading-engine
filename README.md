@@ -4,7 +4,9 @@ A private, modular system for researching Solana activity, scoring trade opportu
 
 ## Current status
 
-The repository foundation and Telegram credential validation are active. Live trading is intentionally disabled until the signal, risk, execution, and audit layers have been implemented and verified.
+The repository foundation plus Telegram, Helius, GMGN, and Jupiter credential validation are active. The initial strategy, token-safety, entity-ranking, paper-acceptance, portfolio-risk, and signer rules are encoded in the versioned policy. Live trading remains locked until the signal, risk, execution, and audit layers have been implemented and verified.
+
+See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
 
 ## Planned pipeline
 

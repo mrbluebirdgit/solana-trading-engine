@@ -10,3 +10,5 @@ This file records integration requirements and status. It must never contain cre
 | Jupiter | Independent prices, swap quotes, and route comparison | `JUPITER_API_KEY` | Wallet signing key and transaction approval | Read-only health verification ready; execution disabled |
 
 Additional providers will be added one at a time with their authentication method, minimum permissions, rate limits, health check, and revocation procedure.
+
+The full ordered provider, infrastructure, and secret roadmap is maintained in [Integration roadmap v1](INTEGRATION_ROADMAP.md).

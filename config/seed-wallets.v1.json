@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "purpose": "Unverified seed observations for entity discovery only",
+  "copyAuthorization": false,
+  "wallets": [
+    { "label": "gr3gor14n", "address": "J23qr98GjGJJqKq9CBEnyRhHbmkaVxtTJNNxKu597wsA", "status": "unverified_seed" },
+    { "label": "FlippingProfits", "address": "DdM1tyCdoEyoxYYmGMjdf5rRPcpmj3UzZTpE7ScuTf7d", "status": "unverified_seed" },
+    { "label": "hdegroot", "address": "4y2T1ghykCTq4EddoXjptZamk4qAsqcZw6eKxS8jdvE1", "status": "unverified_seed" },
+    { "label": "Uniswapvillain", "address": "AusMtCwzrPnPoJUSHYUH9iogVwpWh2ESHC6xWU75tBDo", "status": "unverified_seed" },
+    { "label": "marcell", "address": "6vbrTLsWy76TxDQAUKLqZrPohQuq6EVaJgfGzR82paFa", "status": "unverified_seed" },
+    { "label": "J777Crypto", "address": "4UrFSCrGxgoCtCUBAEZq7ZmPK3Pczkxx7PwYnkBMi1KR", "status": "unverified_seed" },
+    { "label": "cooker", "address": "8deJ9xeUvXSJwicYptA9mHsU2rN2pDx37KWzkDkEXhU6", "status": "unverified_seed" }
+  ]
+}
