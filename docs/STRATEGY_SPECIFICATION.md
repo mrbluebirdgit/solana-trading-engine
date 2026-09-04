@@ -2,7 +2,7 @@
 
 Status: **LIVE-LOCKED**
 
-The engine now treats the user's prior opportunity, entity, safety, and portfolio notes as versioned machine-readable policy in `config/policy.v1.yaml`. They are initial hypotheses and safety limits, not a promise of profitability. Performance thresholds may change only through a new policy version and backtest/forward-paper evidence. Live status cannot be enabled by editing this file.
+The engine treats the existing opportunity, entity, safety, and portfolio notes as versioned machine-readable policy in `config/policy.v1.yaml`. They are initial hypotheses and conservative safety limits, not a promise of profitability and not assumed to be optimal. `config/evidence-registry.v1.json` now records the evidence class, sources, limitations, calibration state, and falsification test behind each material rule. Performance thresholds may change only through a new policy version and the research process in `docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md`. Live status cannot be enabled by editing this file.
 
 ## Decision path
 
@@ -14,6 +14,20 @@ The engine now treats the user's prior opportunity, entity, safety, and portfoli
 6. Emit `ALERT ONLY`, `TRADE ELIGIBLE`, or a machine-readable rejection reason.
 7. Paper-execute with realistic latency, costs, failures, and exit constraints.
 8. Remain live-locked until the acceptance gate and explicit activation are both satisfied.
+
+## Master decision contract
+
+The future executor must implement `docs/MASTER_DECISION_CONTRACT.md` and keep three predictions separate:
+
+1. probability of manipulation, fraud, or another adverse event;
+2. distribution of the follower's net return after latency, spread, impact, priority fees, tips, failed attempts, and exit constraints; and
+3. probability that the proposed transaction lands and reconciles as intended.
+
+The feature layer may test interactions such as liquidity velocity × independent buyer breadth × (1 − entity-adjusted concentration) × authenticity. This is a research hypothesis, not a production formula. A fast curve can be a positive adoption signal or coordinated manipulation; the interaction must distinguish the two through chronological evaluation.
+
+## Evidence governance
+
+Rules are classified as `PROTOCOL_FACT`, `ENGINEERING_INVARIANT`, `EMPIRICAL_FEATURE`, `RISK_GUARDRAIL`, `UNVALIDATED_HYPOTHESIS`, or `REJECTED_SHORTCUT`. Only protocol facts, engineering invariants, and explicitly authorized risk guardrails can become hard gates before local calibration. Empirical features remain model inputs until their net value survives replay, walk-forward testing, unseen-group evaluation, and forward paper trading. Unvalidated hypotheses cannot silently become trade gates, and rejected shortcuts cannot be activated.
 
 ## Opportunity rules now encoded
 
@@ -29,7 +43,9 @@ The engine now treats the user's prior opportunity, entity, safety, and portfoli
 | Early-growth size | Market capitalization below $3 million unless a separately tested strategy exists |
 | Consensus | At least three independent Tier A entities for auto-execution consideration |
 | Growth discovery | Greater than 10x volume acceleration and greater than 30% 24-hour holder growth are features, not universal buy rules |
-| Paper acceptance | At least 100 completed eligible signals over at least seven days, positive out-of-sample expectancy after modeled costs, and no critical defects |
+| Paper acceptance | Smoke-test floor only: at least 100 completed eligible signals over at least seven days, positive out-of-sample expectancy after modeled costs, and no critical defects; this never unlocks live trading |
+
+All numeric values in this table remain starting hypotheses or guardrails. None is represented as a research-proven optimum, and none may be tuned on the final holdout.
 
 Bonding-curve candidates do not receive ordinary LP-lock rules. Until reserve thresholds are validated through replay, the earliest/lowest-reserve cases remain alert-only.
 
@@ -53,6 +69,8 @@ Wallets are observations; entities are evidence-based clusters. Shared exchange 
 - Simulate every transaction; require recognized programs and instruction shapes.
 - Never use the main wallet. The model never possesses keys or participates in the signing path.
 
-## Evidence classes
+## Runtime provenance
 
-Every material field must retain one of four provenance classes: on-chain fact, third-party label, model inference, or unknown. Third-party PnL, safety labels, social identities, and wallet rankings cannot become facts without reconciliation. Social virality alone can never authorize a trade.
+Evidence class and runtime provenance are different controls. Every material observation must retain one of four provenance classes: on-chain fact, third-party label, model inference, or unknown. Third-party PnL, safety labels, social identities, and wallet rankings cannot become facts without reconciliation. Social virality alone can never authorize a trade.
+
+Point-in-time records must include source, observed-at time, provider event time, chain slot or block time when available, ingestion time, confidence, and revision history. Missing or stale critical data causes abstention. The model may parse unstructured text and explain decisions, but it cannot authorize, size, sign, or submit a transaction.
