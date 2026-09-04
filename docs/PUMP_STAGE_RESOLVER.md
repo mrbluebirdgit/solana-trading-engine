@@ -33,4 +33,6 @@ Completion and migration remain separate. `migrate` / `migrate_v2` are permissio
 
 - `src/integrations/pump/decode-bonding-curve.mjs` — version-tolerant account decode
 - `src/core/intelligence/pump-stage-resolver.mjs` — fail-closed stage, authority, and LP predicates
-- Live RPC collection is still injected by the caller; this package adds no signer path
+- `src/integrations/helius/pump-stage-collector.mjs` — read-only Helius `getMultipleAccounts` collector
+- Local command: `npm run observe:pump-stage:local -- <mint>`
+- The collector never signs, builds a transaction, or authorizes a buy
