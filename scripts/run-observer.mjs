@@ -7,8 +7,10 @@ import {
   deliverTelegramBotAlert,
 } from "../src/integrations/alerts/deliver.mjs";
 import { runPumpLogsObserver } from "../src/integrations/helius/logs-observer.mjs";
+import { resolveEventMints } from "../src/integrations/helius/resolve-event-mints.mjs";
 
 const notify = process.argv.includes("--notify");
+const includeSwaps = process.argv.includes("--include-swaps");
 const seen = new Set();
 
 async function deliver(alert) {
@@ -42,11 +44,13 @@ if (!process.env.HELIUS_API_KEY?.trim() || !process.env.JUPITER_API_KEY?.trim())
     onEvent: async (event) => {
       if (event.err) return;
       if (event.eventType === "unknown") return;
-      for (const mint of event.candidateMints ?? []) {
-        const key = `${event.signature}:${mint}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        try {
+      if (event.eventType === "swap" && !includeSwaps) return;
+      try {
+        const resolved = await resolveEventMints(process.env.HELIUS_API_KEY, event);
+        for (const mint of resolved.mints) {
+          const key = `${event.signature}:${mint}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
           const observation = await observeOpportunity({
             heliusApiKey: process.env.HELIUS_API_KEY,
             jupiterApiKey: process.env.JUPITER_API_KEY,
@@ -61,6 +65,7 @@ if (!process.env.HELIUS_API_KEY?.trim() || !process.env.JUPITER_API_KEY?.trim())
             decision,
             alert: observation.alert,
             signature: event.signature,
+            mintSource: resolved.source,
           }));
           if (decision.decision === "ALERT_ONLY" || decision.decision === "PAPER_ELIGIBLE") {
             await deliver({
@@ -69,9 +74,9 @@ if (!process.env.HELIUS_API_KEY?.trim() || !process.env.JUPITER_API_KEY?.trim())
               body: `${observation.alert.body}\ndecision: ${decision.decision}`,
             });
           }
-        } catch (error) {
-          console.error(`[observer] ${error.message}`);
         }
+      } catch (error) {
+        console.error(`[observer] ${error.message}`);
       }
     },
   });
