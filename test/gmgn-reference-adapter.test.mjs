@@ -10,17 +10,75 @@ const TEST_KEY = "gmgn_personal_api_key_for_testing";
 test("creates a provider-independent token observation", () => {
   const observation = createTokenObservation({
     source: "another-provider",
-    chain: "sol",
+    sourceMethodVersion: "test-provider.v1",
+    chain: "solana",
     address: "ExampleMint",
     observedAt: "2026-09-03T18:00:00.000Z",
     market: { liquidityUsd: "25000" },
   });
 
-  assert.equal(observation.schemaVersion, 1);
+  assert.equal(observation.schemaVersion, 2);
   assert.equal(observation.source, "another-provider");
   assert.equal(observation.market.liquidityUsd, 25_000);
   assert.equal(observation.behavior.smartMoneyParticipants, null);
   assert.equal(Object.isFrozen(observation), true);
+});
+
+test("rejects malformed canonical observations instead of coercing them", () => {
+  const required = {
+    source: "test-provider",
+    sourceMethodVersion: "test-provider.v1",
+    chain: "solana",
+    address: "ExampleMint",
+    observedAt: "2026-09-03T18:00:00.000Z",
+  };
+
+  assert.throws(
+    () => createTokenObservation({ ...required, observedAt: null }),
+    /RFC 3339/,
+  );
+  assert.throws(
+    () => createTokenObservation({ ...required, sourceMethodVersion: null }),
+    /sourceMethodVersion/,
+  );
+  assert.throws(
+    () => createTokenObservation({ ...required, market: { liquidityUsd: true } }),
+    /must be numeric/,
+  );
+  assert.throws(
+    () =>
+      createTokenObservation({
+        ...required,
+        behavior: { providerBundlerRate: 1.01 },
+      }),
+    /valid numeric range/,
+  );
+  assert.throws(
+    () => createTokenObservation({ ...required, market: [] }),
+    /market must be an object/,
+  );
+  assert.throws(
+    () =>
+      createTokenObservation({
+        ...required,
+        market: { liquidtyUsd: 100 },
+      }),
+    /not a recognized field/,
+  );
+});
+
+test("rejects malformed GMGN boolean labels", () => {
+  assert.throws(
+    () =>
+      normalizeGmgnToken(
+        { chain: "sol", address: "ExampleMint", is_honeypot: "no" },
+        {
+          observedAt: "2026-09-03T18:00:00.000Z",
+          sourceMethodVersion: "gmgn-market.trending@cli-1.6.0",
+        },
+      ),
+    /GMGN flag/,
+  );
 });
 
 test("maps GMGN reference data into our canonical observation", () => {
@@ -36,6 +94,7 @@ test("maps GMGN reference data into our canonical observation", () => {
       renowned_count: 2,
       sniper_count: 9,
       bundler_rate: 0.12,
+      bundler_trader_amount_rate: 0.07,
       rat_trader_amount_rate: 0.03,
       rug_ratio: 0.08,
       is_honeypot: 0,
@@ -44,13 +103,25 @@ test("maps GMGN reference data into our canonical observation", () => {
       renounced_freeze_account: 1,
       launchpad_platform: "Pump.fun",
     },
-    { observedAt: "2026-09-03T18:00:00.000Z" },
+    {
+      observedAt: "2026-09-03T18:00:00.000Z",
+      sourceMethodVersion: "gmgn-market.trending@cli-1.6.0",
+    },
   );
 
   assert.equal(observation.source, "gmgn");
+  assert.equal(
+    observation.sourceMethodVersion,
+    "gmgn-market.trending@cli-1.6.0",
+  );
+  assert.equal(observation.chain, "solana");
   assert.equal(observation.market.liquidityUsd, 25_000);
   assert.equal(observation.behavior.smartMoneyParticipants, 4);
-  assert.equal(observation.behavior.bundledTradeShare, 0.12);
+  assert.equal(observation.behavior.providerBundlerRate, 0.12);
+  assert.equal(
+    observation.behavior.providerBundledTradingVolumeShare,
+    0.07,
+  );
   assert.equal(observation.riskEvidence.providerRugRatio, 0.08);
   assert.equal(observation.riskEvidence.honeypot, false);
   assert.equal(observation.riskEvidence.washTrading, true);

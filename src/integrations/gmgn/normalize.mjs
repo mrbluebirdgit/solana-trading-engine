@@ -3,17 +3,28 @@ import { createTokenObservation } from "../../core/intelligence/token-observatio
 function gmgnFlag(value) {
   if (value === 1 || value === true) return true;
   if (value === 0 || value === false) return false;
-  return null;
+  if (value === null || value === undefined || value === "") return null;
+  throw new TypeError("GMGN flag must be 0, 1, true, false, or missing");
 }
 
-export function normalizeGmgnToken(rawToken, { observedAt } = {}) {
-  if (!rawToken || typeof rawToken !== "object") {
+function canonicalChain(value) {
+  return value === undefined || value === null || value === "sol"
+    ? "solana"
+    : value;
+}
+
+export function normalizeGmgnToken(
+  rawToken,
+  { observedAt, sourceMethodVersion } = {},
+) {
+  if (!rawToken || typeof rawToken !== "object" || Array.isArray(rawToken)) {
     throw new TypeError("GMGN token payload must be an object");
   }
 
   return createTokenObservation({
     source: "gmgn",
-    chain: rawToken.chain ?? "sol",
+    sourceMethodVersion,
+    chain: canonicalChain(rawToken.chain),
     address: rawToken.address,
     observedAt: observedAt ?? new Date().toISOString(),
     identity: {
@@ -36,7 +47,9 @@ export function normalizeGmgnToken(rawToken, { observedAt } = {}) {
       smartMoneyParticipants: rawToken.smart_degen_count,
       notableWalletParticipants: rawToken.renowned_count,
       sniperParticipants: rawToken.sniper_count,
-      bundledTradeShare: rawToken.bundler_rate,
+      providerBundlerRate: rawToken.bundler_rate,
+      providerBundledTradingVolumeShare:
+        rawToken.bundler_trader_amount_rate,
       suspiciousTraderVolumeShare: rawToken.rat_trader_amount_rate,
       botParticipantShare: rawToken.bot_degen_rate,
     },

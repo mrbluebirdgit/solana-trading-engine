@@ -4,7 +4,9 @@ The engine owns its data model, evidence fusion, scoring, risk controls, routing
 
 ## Provider boundary
 
-Every adapter maps provider-specific fields into `TokenObservation` schema version 1. Core scoring will consume that schema rather than importing a provider SDK or field names. Each observation records its source and timestamp so conflicting data can be detected instead of silently averaged.
+Every adapter maps provider-specific fields into `TokenObservation` schema version 2. Version 2 preserves GMGN's `bundler_rate` as `providerBundlerRate` with an unspecified denominator and maps `bundler_trader_amount_rate` separately to `providerBundledTradingVolumeShare`. Both retain a provider method/version, so neither can be mistaken for supply held or an independently reconstructed cohort. A separate point-in-time `TrafficSnapshot` composes aligned multi-window flow, participation, ownership, executable-depth and social measurements without producing a verdict. Its `providerLabels` collection is deliberately outside `launchCohorts`. Core scoring will consume these internal schemas rather than importing a provider SDK or field names. Each observation and snapshot-provenance record includes its source, source-method version and timestamp so conflicting data can be detected instead of silently averaged.
+
+These schemas and validation boundaries are implemented; the production Pump/PumpSwap collectors, launch-cohort builders and canonical venue-stage resolver are not. Until those components exist, no schema instance should be described as independently verified merely because it validates structurally.
 
 GMGN is currently authorized only for supplemental read-only intelligence. Its CLI is used only by an isolated health check and is version-pinned. No GMGN package is installed as a core engine dependency, and no GMGN trading instruction is accepted by the engine.
 
@@ -17,11 +19,13 @@ Jupiter is currently authorized for read-only price and route data. Its provider
 | Market quality | price, volume, liquidity, market capitalization | Detect illiquid or distorted markets and compare provider snapshots |
 | Ownership concentration | holder count, top-10 share, developer-team share | Reject concentrated supply and track distribution changes |
 | Informed participation | smart-money and notable-wallet counts | Candidate discovery only; never an automatic buy signal |
-| Adversarial activity | sniper count, bundled-trade share, suspicious-trader volume, bot share | Manipulation and crowded-entry penalties |
+| Adversarial activity | sniper count, `bundler_rate`, bundled-trading-volume share, suspicious-trader volume, bot share | Provider-labeled context only; denominator and method/version are retained, while independently derived same-slot, landed-Jito, funding and retained-supply cohorts remain separate |
 | Contract and trading risk | honeypot, wash trading, authority status, provider rug ratio | Hard-block candidates or require independent confirmation |
 | Venue provenance | launchpad, exchange, creation time | Apply venue-specific age, liquidity, and migration rules |
 
 These mappings are translations into our vocabulary, not copied strategy logic. Provider ratios remain labeled as provider evidence until Helius or another independent source corroborates them.
+
+The full measurement contract and provider limitations are in [the market participation specification](TRAFFIC_FEATURE_SPECIFICATION.md). No provider adapter may infer Pump lifecycle stage from market cap, reconstruct a historical feature from current state, equate a wallet with a person, or collapse different bundle denominators into one field. An `exact_jito_bundle` requires landed status, landing slot, one to five included transaction signatures, and explicit confirmation of both launch and buy activity; a returned bundle ID or nearby tip is not enough.
 
 ## What makes this engine independent
 
