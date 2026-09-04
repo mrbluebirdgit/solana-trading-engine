@@ -17,6 +17,10 @@ const validGmgnEnvironment = Object.freeze({
   GMGN_API_KEY: "gmgn_personal_api_key_for_testing",
 });
 
+const validJupiterEnvironment = Object.freeze({
+  JUPITER_API_KEY: "jupiter_api_key_for_testing",
+});
+
 test("accepts a correctly formatted GMGN API key", () => {
   const result = validateProvider("gmgn", validGmgnEnvironment);
 
@@ -29,6 +33,22 @@ test("rejects a missing or malformed GMGN API key", () => {
   assert.equal(validateProvider("gmgn", {}).ok, false);
   assert.equal(
     validateProvider("gmgn", { GMGN_API_KEY: "contains spaces" }).ok,
+    false,
+  );
+});
+
+test("accepts a correctly formatted Jupiter API key", () => {
+  const result = validateProvider("jupiter", validJupiterEnvironment);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.checks.length, 1);
+  assert.equal(result.checks[0].ok, true);
+});
+
+test("rejects a missing or malformed Jupiter API key", () => {
+  assert.equal(validateProvider("jupiter", {}).ok, false);
+  assert.equal(
+    validateProvider("jupiter", { JUPITER_API_KEY: "contains spaces" }).ok,
     false,
   );
 });

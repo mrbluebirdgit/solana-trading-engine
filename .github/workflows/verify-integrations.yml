@@ -11,6 +11,7 @@ on:
         options:
           - gmgn
           - helius
+          - jupiter
           - telegram
   issue_comment:
     types:
@@ -84,6 +85,35 @@ jobs:
 
       - name: Verify Helius integration
         run: node scripts/verify-helius-live.mjs
+
+  verify-jupiter:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.provider == 'jupiter') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify jupiter')
+    name: Verify Jupiter read-only configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Verify Jupiter read-only integration
+        run: npm run verify:jupiter
 
   verify-telegram:
     if: >-

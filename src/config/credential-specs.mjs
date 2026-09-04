@@ -15,6 +15,14 @@ const credentialSpecs = Object.freeze({
       invalidMessage: "must be a 16-128 character Helius API key",
     }),
   ]),
+  jupiter: Object.freeze([
+    Object.freeze({
+      name: "JUPITER_API_KEY",
+      description: "Jupiter market-data and routing API key",
+      validate: (value) => /^[!-~]{16,512}$/.test(value),
+      invalidMessage: "must be 16-512 non-whitespace characters",
+    }),
+  ]),
   telegram: Object.freeze([
     Object.freeze({
       name: "TELEGRAM_API_ID",

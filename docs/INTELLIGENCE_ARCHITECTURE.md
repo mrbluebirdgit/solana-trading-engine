@@ -8,6 +8,8 @@ Every adapter maps provider-specific fields into `TokenObservation` schema versi
 
 GMGN is currently authorized only for supplemental read-only intelligence. Its CLI is used only by an isolated health check and is version-pinned. No GMGN package is installed as a core engine dependency, and no GMGN trading instruction is accepted by the engine.
 
+Jupiter is currently authorized for read-only price and route data. Its provider response is translated into our own `RouteQuote` schema before the engine sees it. The read-only adapter never supplies a taker, receiver, or payer, and it deliberately drops any transaction data from provider responses. Building, signing, and submitting transactions remain separate, disabled capabilities.
+
 ## Useful concepts extracted from GMGN
 
 | Our evidence family | GMGN reference fields | Intended use |
@@ -33,12 +35,13 @@ The planned decision path requires:
 6. Deterministic replay and backtesting from recorded observations.
 7. Reconciliation, immutable decision records, and a kill switch.
 
-GMGN can be replaced or removed without rewriting those layers.
+GMGN or Jupiter can be replaced or removed without rewriting those layers.
 
 ## Source references
 
 - [GMGN OpenAPI skills and CLI reference](https://github.com/GMGNAI/gmgn-skills)
 - [GMGN Agent API](https://docs.gmgn.ai/index/gmgn-agent-api)
 - [GMGN public-key guide](https://docs.gmgn.ai/index/generate-public-key)
+- [Jupiter Swap API](https://developers.jup.ag/docs/swap)
 
 References are reviewed for capabilities and field semantics. External code is not vendored into the engine.

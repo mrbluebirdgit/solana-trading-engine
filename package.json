@@ -13,6 +13,8 @@
     "verify:gmgn:local": "node --env-file=.env scripts/verify-gmgn-live.mjs",
     "verify:helius": "node scripts/verify-helius-live.mjs",
     "verify:helius:local": "node --env-file=.env scripts/verify-helius-live.mjs",
+    "verify:jupiter": "node scripts/verify-jupiter-live.mjs",
+    "verify:jupiter:local": "node --env-file=.env scripts/verify-jupiter-live.mjs",
     "verify:telegram": "node scripts/verify-integrations.mjs telegram",
     "verify:telegram:local": "node --env-file=.env scripts/verify-integrations.mjs telegram"
   }

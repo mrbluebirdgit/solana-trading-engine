@@ -58,6 +58,16 @@ The current GMGN key is read-only. Use the **Verify integrations** workflow with
 
 See [intelligence architecture](docs/INTELLIGENCE_ARCHITECTURE.md) for the boundary between external references and our engine.
 
+## Jupiter reference integration
+
+Jupiter provides an independent source for prices, swap quotes, and route comparison. It is an execution candidate, not the engine's strategy or risk authority.
+
+Required secret name:
+
+- `JUPITER_API_KEY`
+
+Use the **Verify integrations** workflow with provider `jupiter`, or post the exact owner-only command `/verify jupiter` on a repository issue. Verification makes one authenticated, read-only SOL price request and never logs the key or returned price. The quote adapter omits wallet parameters and translates provider responses into our own `RouteQuote` schema. Wallet creation, transaction building, signing, and submission remain disabled.
+
 ## Security boundaries
 
 - No wallet seed phrase or private signing key belongs in GitHub, ChatGPT, logs, or screenshots.
