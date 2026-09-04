@@ -6,10 +6,10 @@ The engine treats the existing opportunity, entity, safety, and portfolio notes 
 
 ## Decision path
 
-1. Discover candidates from watched entities, launch/growth scans, and authorized non-crypto social trends.
+1. Discover candidates across launch and migration activity, market flow, liquidity, holder growth and distribution, token and creator safety, social attention, and explicitly user-approved wallet or entity observations.
 2. Establish the token's canonical mint, venue, and bonding-curve or graduated stage.
 3. Reconcile on-chain facts and market evidence from at least two independent sources.
-4. Score the trader entity, counting a related-wallet cluster only once.
+4. Score the opportunity across token and market quality, manipulation risk, attention conversion, entity evidence when available, and follower execution viability; count a related-wallet cluster only once.
 5. Apply token, freshness, chase, price-impact, slippage, portfolio, and signer gates.
 6. Emit `ALERT ONLY`, `TRADE ELIGIBLE`, or a machine-readable rejection reason.
 7. Paper-execute with realistic latency, costs, failures, and exit constraints.
@@ -58,7 +58,7 @@ The 0–100 score assigns 25 points to repeat success across distinct tokens, 20
 - Tier C: below 60 or otherwise stale, concentrated, unproven, or materially flagged; research only.
 - Disqualified: credible insider, creator, wash, bundled, malicious, or follower-dumping evidence.
 
-Wallets are observations; entities are evidence-based clusters. Shared exchange funding or buying the same popular token never establishes identity by itself. The seed wallet list is explicitly unverified and has no copy authorization.
+Wallet activity is one optional evidence family, not the strategy. The repository ships with no static wallet entries. Any future watchlist must be created empty, and each entry requires explicit user approval. Wallet inputs have `candidate_nomination` authority only: an observation or third-party label cannot confer entity rank, copy permission, trade eligibility, or execution authority. Entities are evidence-based clusters; shared exchange funding or buying the same popular token never establishes identity by itself.
 
 ## Portfolio and signing limits
 
