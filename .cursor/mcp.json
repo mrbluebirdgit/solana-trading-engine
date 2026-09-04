@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "helius": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "helius-mcp@2.2.0"],
+      "env": {
+        "HELIUS_API_KEY": "${env:HELIUS_API_KEY}",
+        "HELIUS_NETWORK": "mainnet-beta"
+      }
+    }
+  }
+}
