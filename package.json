@@ -9,6 +9,8 @@
   },
   "scripts": {
     "test": "node --test",
+    "verify:gmgn": "node scripts/verify-gmgn-live.mjs",
+    "verify:gmgn:local": "node --env-file=.env scripts/verify-gmgn-live.mjs",
     "verify:helius": "node scripts/verify-helius-live.mjs",
     "verify:helius:local": "node --env-file=.env scripts/verify-helius-live.mjs",
     "verify:telegram": "node scripts/verify-integrations.mjs telegram",

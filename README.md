@@ -46,6 +46,18 @@ Required secret name:
 
 Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius`, or post the exact owner-only command `/verify helius` on a repository issue, to validate its formatting and make a live, read-only mainnet RPC health request.
 
+## GMGN reference integration
+
+GMGN is one external intelligence source, not the engine's strategy, risk authority, or master architecture. Its market and behavioral fields are normalized into our own provider-independent observation format so they can later be corroborated against Helius, Telegram, social, and execution-quote sources.
+
+Required secret name:
+
+- `GMGN_API_KEY`
+
+The current GMGN key is read-only. Use the **Verify integrations** workflow with provider `gmgn`, or post the exact owner-only command `/verify gmgn` on a repository issue, to make a minimal live read request without displaying the key or token data. Trading permissions, signing keys, and GMGN-controlled execution remain disabled.
+
+See [intelligence architecture](docs/INTELLIGENCE_ARCHITECTURE.md) for the boundary between external references and our engine.
+
 ## Security boundaries
 
 - No wallet seed phrase or private signing key belongs in GitHub, ChatGPT, logs, or screenshots.

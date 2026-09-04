@@ -13,6 +13,26 @@ const validHeliusEnvironment = Object.freeze({
   HELIUS_API_KEY: "01234567-89ab-cdef-0123-456789abcdef",
 });
 
+const validGmgnEnvironment = Object.freeze({
+  GMGN_API_KEY: "gmgn_personal_api_key_for_testing",
+});
+
+test("accepts a correctly formatted GMGN API key", () => {
+  const result = validateProvider("gmgn", validGmgnEnvironment);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.checks.length, 1);
+  assert.equal(result.checks[0].ok, true);
+});
+
+test("rejects a missing or malformed GMGN API key", () => {
+  assert.equal(validateProvider("gmgn", {}).ok, false);
+  assert.equal(
+    validateProvider("gmgn", { GMGN_API_KEY: "contains spaces" }).ok,
+    false,
+  );
+});
+
 test("accepts a correctly formatted Helius API key", () => {
   const result = validateProvider("helius", validHeliusEnvironment);
 

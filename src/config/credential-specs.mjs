@@ -1,4 +1,12 @@
 const credentialSpecs = Object.freeze({
+  gmgn: Object.freeze([
+    Object.freeze({
+      name: "GMGN_API_KEY",
+      description: "GMGN read-only intelligence API key",
+      validate: (value) => /^[!-~]{16,512}$/.test(value),
+      invalidMessage: "must be 16-512 non-whitespace characters",
+    }),
+  ]),
   helius: Object.freeze([
     Object.freeze({
       name: "HELIUS_API_KEY",
