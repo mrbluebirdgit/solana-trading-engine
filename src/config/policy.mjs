@@ -27,8 +27,8 @@ export function validatePolicy(policy) {
     throw new TypeError("policy must be an object");
   }
 
-  if (policy.policyVersion !== "1.0.0") {
-    throw new TypeError("policyVersion must be 1.0.0");
+  if (policy.policyVersion !== "1.1.0") {
+    throw new TypeError("policyVersion must be 1.1.0");
   }
 
   if (policy.chain !== "solana") {
@@ -105,11 +105,19 @@ export function validatePolicy(policy) {
     throw new TypeError("entity scoring weights must contain 7 values totaling 100");
   }
 
+  if (
+    policy.entityScoring?.tiers?.tierA?.mode !==
+    "priority_alert_and_paper_evaluation"
+  ) {
+    throw new TypeError("Tier A cannot directly authorize paper copy or execution");
+  }
+
   for (const path of [
     "portfolioRisk.noLeverage",
     "portfolioRisk.noBorrowing",
     "portfolioRisk.noAveragingDown",
     "portfolioRisk.noMartingale",
+    "inputGovernance.walletInputs.staticWatchlistsRequireExplicitUserApproval",
     "signerSecurity.dedicatedBalanceCappedWalletOnly",
     "signerSecurity.mainWalletForbidden",
     "signerSecurity.allowlistedProgramsAndTransactionShapesOnly",
@@ -121,6 +129,23 @@ export function validatePolicy(policy) {
     if (value !== true) {
       throw new TypeError(`${path} must remain enabled`);
     }
+  }
+
+  const preloadedEntries =
+    policy.inputGovernance?.walletInputs?.repositoryShipsWithPreloadedEntries;
+  if (preloadedEntries !== false) {
+    throw new TypeError(
+      "inputGovernance.walletInputs.repositoryShipsWithPreloadedEntries must remain disabled",
+    );
+  }
+
+  if (
+    policy.inputGovernance?.walletInputs?.maximumAuthority !==
+    "candidate_nomination"
+  ) {
+    throw new TypeError(
+      "wallet inputs must remain limited to candidate nomination",
+    );
   }
 
   return deepFreeze(policy);

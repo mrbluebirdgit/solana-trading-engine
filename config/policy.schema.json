@@ -17,12 +17,13 @@
     "entityScoring",
     "discovery",
     "tokenSafety",
+    "inputGovernance",
     "paperAcceptance",
     "signerSecurity"
   ],
   "properties": {
     "$schema": { "type": "string" },
-    "policyVersion": { "const": "1.0.0" },
+    "policyVersion": { "const": "1.1.0" },
     "projectName": { "const": "solana-trading-engine" },
     "status": { "enum": ["BUILDING", "PAPER", "LIVE_LOCKED", "PAUSED"] },
     "chain": { "const": "solana" },
@@ -48,6 +49,7 @@
     "entityScoring": { "$ref": "#/$defs/object" },
     "discovery": { "$ref": "#/$defs/object" },
     "tokenSafety": { "$ref": "#/$defs/object" },
+    "inputGovernance": { "$ref": "#/$defs/inputGovernance" },
     "paperAcceptance": { "$ref": "#/$defs/object" },
     "signerSecurity": { "$ref": "#/$defs/object" }
   },
@@ -55,6 +57,27 @@
     "object": {
       "type": "object",
       "minProperties": 1
+    },
+    "inputGovernance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["walletInputs"],
+      "properties": {
+        "walletInputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repositoryShipsWithPreloadedEntries",
+            "staticWatchlistsRequireExplicitUserApproval",
+            "maximumAuthority"
+          ],
+          "properties": {
+            "repositoryShipsWithPreloadedEntries": { "const": false },
+            "staticWatchlistsRequireExplicitUserApproval": { "const": true },
+            "maximumAuthority": { "const": "candidate_nomination" }
+          }
+        }
+      }
     }
   }
 }
