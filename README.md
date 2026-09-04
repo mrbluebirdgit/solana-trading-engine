@@ -4,9 +4,15 @@ A private, modular system for researching Solana activity, scoring trade opportu
 
 ## Current status
 
-The repository foundation plus Telegram, Helius, GMGN, and Jupiter credential validation are active. The initial strategy, token-safety, entity-ranking, paper-acceptance, portfolio-risk, and signer rules are encoded in the versioned policy. Live trading remains locked until the signal, risk, execution, and audit layers have been implemented and verified.
+The repository foundation plus Telegram, Helius, GMGN, Jupiter, and Birdeye credential validation are active. Research governance is now explicit: every material rule must carry a source, evidence class, limitations, calibration status, and falsification test. The current numeric policy is a set of paper-only hypotheses and conservative guardrails—not empirically proven optimums. No master trading executor exists yet, and live trading remains locked until the signal, risk, execution, validation, and audit layers have been implemented and verified.
 
-See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
+See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [evidence ledger](docs/EVIDENCE_LEDGER.md), [research and calibration protocol](docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md), [master decision contract](docs/MASTER_DECISION_CONTRACT.md), [machine-readable evidence registry](config/evidence-registry.v1.json), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
+
+## Research-governed decision system
+
+The future executor must estimate three separate quantities: adverse-event/manipulation risk, net follower return after all costs, and execution/landing probability. It may combine them only through the deterministic policy and only after point-in-time, chronological validation. API access improves data coverage and reliability; it does not create predictive edge by itself.
+
+The repository rejects fixed “magic formulas,” raw leader copying, social virality as authorization, provider labels as ground truth, and any claim that a backtest proves future profit. The evidence-registry validator keeps those shortcuts forbidden while the project is live-locked.
 
 ## Planned pipeline
 

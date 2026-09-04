@@ -1,0 +1,469 @@
+{
+  "registryVersion": "1.0.0",
+  "researchCutoff": "2026-09-04",
+  "projectStatus": "LIVE_LOCKED",
+  "purpose": "Classify the evidence and runtime permission behind every material decision rule.",
+  "sources": [
+    {
+      "id": "SOLANA_TOKEN_DOCS",
+      "type": "official_protocol_documentation",
+      "title": "Solana token and Token-2022 documentation",
+      "url": "https://solana.com/docs/tokens",
+      "confidence": "high",
+      "limits": "Defines capabilities and state, not whether a token is fraudulent or profitable."
+    },
+    {
+      "id": "SOLANA_RPC_DOCS",
+      "type": "official_protocol_documentation",
+      "title": "Solana RPC send, simulation and status documentation",
+      "url": "https://solana.com/docs/rpc",
+      "confidence": "high",
+      "limits": "Simulation and node acceptance are point-in-time states, not landing or fill guarantees."
+    },
+    {
+      "id": "PUMP_PUBLIC_DOCS",
+      "type": "official_protocol_documentation",
+      "title": "Pump.fun public documentation and IDLs",
+      "url": "https://github.com/pump-fun/pump-public-docs",
+      "confidence": "high",
+      "limits": "Must pin and verify the deployed program and IDL version."
+    },
+    {
+      "id": "JUPITER_SWAP_DOCS",
+      "type": "official_provider_documentation",
+      "title": "Jupiter Swap API",
+      "url": "https://developers.jup.ag/docs/swap",
+      "confidence": "high",
+      "limits": "Expected quote/order values are not confirmed fills."
+    },
+    {
+      "id": "JITO_SEND_DOCS",
+      "type": "official_provider_documentation",
+      "title": "Jito low-latency transaction send",
+      "url": "https://docs.jito.wtf/lowlatencytxnsend/",
+      "confidence": "high",
+      "limits": "Bundle or send acceptance is not landing; the low-latency send path skips preflight."
+    },
+    {
+      "id": "HELIUS_DOCS",
+      "type": "official_provider_documentation",
+      "title": "Helius data streaming and Sender documentation",
+      "url": "https://www.helius.dev/docs/data-streaming",
+      "confidence": "high",
+      "limits": "Documents access and delivery capabilities, not predictive edge."
+    },
+    {
+      "id": "MELT_2026",
+      "type": "research_preprint_with_reproducibility_assets",
+      "title": "MELT: A Behavioral Trace Dataset for High-Risk Memecoin Launch Detection",
+      "url": "https://arxiv.org/html/2602.13480v2",
+      "confidence": "medium",
+      "limits": "Migrated launches only, inferred risk labels, older migration regime; public assets are non-commercially licensed."
+    },
+    {
+      "id": "CATCHING_RUG_2026",
+      "type": "research_preprint",
+      "title": "Catching the Rug: Early Prediction of Fraudulent Memecoins on Solana via Machine Learning",
+      "url": "https://arxiv.org/html/2608.20271v1",
+      "confidence": "medium_low",
+      "limits": "Outcome labels are imperfect, cross-venue transfer is weak, and authors state it is not deployment-ready."
+    },
+    {
+      "id": "SOLRUG_2026",
+      "type": "research_preprint",
+      "title": "From Hype to Collapse: Investigating Rug Pull Scams on Solana",
+      "url": "https://arxiv.org/html/2603.24625v2",
+      "confidence": "medium",
+      "limits": "Behavior detector can miss slower attacks and is not a return model."
+    },
+    {
+      "id": "PUMP_SUCCESS_2026",
+      "type": "research_preprint",
+      "title": "Predicting the success of new crypto-tokens: the Pump.fun case",
+      "url": "https://arxiv.org/html/2602.14860v1",
+      "confidence": "medium",
+      "limits": "One month; graduation rather than follower return; wallet uplift was modest and non-monotonic."
+    },
+    {
+      "id": "COPY_BOTS_2026",
+      "type": "research_preprint",
+      "title": "Resisting Manipulative Bots in Meme Coin Copy Trading",
+      "url": "https://arxiv.org/html/2601.08641v2",
+      "confidence": "medium_low",
+      "limits": "Heuristic bot labels, LLM-classified content and one historical sample; not independent live proof."
+    },
+    {
+      "id": "MIDSUMMER_2026",
+      "type": "research_preprint",
+      "title": "A Midsummer Meme's Dream: Investigating Market Manipulations in the Meme Coin Ecosystem",
+      "url": "https://arxiv.org/html/2507.01963v2",
+      "confidence": "medium",
+      "limits": "Cross-chain selected samples and heuristic manipulation detection; not a forward entry model."
+    },
+    {
+      "id": "TREND_FACTOR_2025",
+      "type": "peer_reviewed_research",
+      "title": "A Trend Factor for the Cross Section of Cryptocurrency Returns",
+      "url": "https://www.cambridge.org/core/journals/journal-of-financial-and-quantitative-analysis/article/trend-factor-for-the-cross-section-of-cryptocurrency-returns/4C1509ACBA33D5DCAF0AC24379148178",
+      "confidence": "medium",
+      "limits": "Broader and more liquid assets at much longer horizons than Pump.fun."
+    },
+    {
+      "id": "MOMENTUM_COUNTER_2025",
+      "type": "peer_reviewed_research",
+      "title": "Cryptocurrency momentum has (not) its moments",
+      "url": "https://link.springer.com/article/10.1007/s11408-025-00474-9",
+      "confidence": "medium",
+      "limits": "Different universe and horizon, but strong evidence that momentum is unstable and crash-prone."
+    },
+    {
+      "id": "SOCIAL_CFR_2024",
+      "type": "research_working_paper",
+      "title": "Social Media-Based Attention and the Cross-Section of Cryptocurrency Returns",
+      "url": "https://cfr-cologne.de/download/workingpaper/cfr-25-02.pdf",
+      "confidence": "medium_low",
+      "limits": "Daily horizon, possible reverse causality and no minute-scale Solana validation."
+    },
+    {
+      "id": "SOCIAL_PLOS_2023",
+      "type": "peer_reviewed_research",
+      "title": "Social media engagement and cryptocurrency performance",
+      "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0284501",
+      "confidence": "medium_low",
+      "limits": "New-coin sample and social-bot confounding; does not validate a direct buy trigger."
+    },
+    {
+      "id": "FAILED_TX_2025",
+      "type": "peer_reviewed_empirical_research",
+      "title": "Why Does My Transaction Fail? A First Look at Failed Transactions on the Solana Blockchain",
+      "url": "https://arxiv.org/html/2504.18055v1",
+      "confidence": "high",
+      "limits": "Historical program mix and bot-classification uncertainty; measured failure rate must not be transplanted."
+    },
+    {
+      "id": "JITO_SANDWICH_2025",
+      "type": "peer_reviewed_empirical_research",
+      "title": "Quantifying the Threat of Sandwiching MEV on Jito",
+      "url": "https://doi.org/10.1145/3730567.3764493",
+      "confidence": "high",
+      "limits": "Historical Jito-focused window and lower-bound loss estimate."
+    },
+    {
+      "id": "PBO",
+      "type": "peer_reviewed_methodology",
+      "title": "The Probability of Backtest Overfitting",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253",
+      "confidence": "high",
+      "limits": "Application must preserve blocked and dependent time-series structure."
+    },
+    {
+      "id": "DSR",
+      "type": "peer_reviewed_methodology",
+      "title": "The Deflated Sharpe Ratio",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551",
+      "confidence": "high",
+      "limits": "Requires a truthful record of trials and assumptions about return dependence."
+    },
+    {
+      "id": "POLICY_V1",
+      "type": "internal_policy",
+      "title": "Current versioned policy",
+      "url": "config/policy.v1.yaml",
+      "confidence": "not_applicable",
+      "limits": "Contains initial hypotheses and conservative controls, not externally validated optima."
+    }
+  ],
+  "rules": [
+    {
+      "id": "protocol.canonical_state",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Resolve and decode the exact mint, program, venue, stage, curve or pool relationships from fresh chain state.",
+      "limits": "A provider badge cannot replace program/account verification.",
+      "sourceIds": ["SOLANA_TOKEN_DOCS", "PUMP_PUBLIC_DOCS"]
+    },
+    {
+      "id": "protocol.token_capabilities",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Decode authorities and all supported Token-2022 extensions; reject unsupported or presently unsellable behavior.",
+      "limits": "A capability is not proof of fraud; the exclusion is a risk policy.",
+      "sourceIds": ["SOLANA_TOKEN_DOCS", "SOLRUG_2026"]
+    },
+    {
+      "id": "execution.exact_simulation",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Simulate the exact final allowlisted transaction before signing, including an executable exit path where applicable.",
+      "limits": "Simulation is point-in-time and cannot guarantee landing or future sellability.",
+      "sourceIds": ["SOLANA_RPC_DOCS", "JITO_SEND_DOCS"]
+    },
+    {
+      "id": "execution.reconciliation",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Create fills and PnL only from confirmed chain metadata and balance deltas; monitor finality and terminal failures.",
+      "limits": "Operational commitment and rollback handling must be explicit.",
+      "sourceIds": ["SOLANA_RPC_DOCS", "JUPITER_SWAP_DOCS"]
+    },
+    {
+      "id": "data.point_in_time",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Every feature and entity result must be available at the decision cutoff with event and observation timestamps.",
+      "limits": "Historical provider snapshots may be unavailable and must be marked missing rather than reconstructed from future state.",
+      "sourceIds": ["CATCHING_RUG_2026", "PBO"]
+    },
+    {
+      "id": "risk.entity_adjusted_concentration",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Compare raw and typed-entity-adjusted early/top-holder concentration.",
+      "limits": "Co-funding and bundle relationships can produce false ownership links; cutoffs are not portable.",
+      "sourceIds": ["MELT_2026", "SOLRUG_2026"]
+    },
+    {
+      "id": "risk.creator_funder_history",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Use only prior creator, funder, LP and profit-recipient outcomes as typed risk evidence.",
+      "limits": "Shared services/exchanges and community takeovers can create false associations.",
+      "sourceIds": ["SOLRUG_2026", "MELT_2026"]
+    },
+    {
+      "id": "risk.venue_specific_model",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Train and calibrate adverse-outcome models separately by venue and lifecycle stage.",
+      "limits": "Even a venue-specific model can decay across program versions and regimes.",
+      "sourceIds": ["CATCHING_RUG_2026", "PUMP_PUBLIC_DOCS"]
+    },
+    {
+      "id": "alpha.organic_velocity_interaction",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Test curve/net-inflow velocity jointly with independent buyer breadth, entity concentration and wash authenticity.",
+      "limits": "Fast progression can signal either organic demand or coordinated high-risk inventory; no published coefficient is portable.",
+      "sourceIds": ["PUMP_SUCCESS_2026", "MELT_2026", "MIDSUMMER_2026"]
+    },
+    {
+      "id": "alpha.wallet_quality",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Estimate decayed wallet/entity quality from prior closed outcomes, uncertainty, drawdown, entry and exit behavior.",
+      "limits": "Persistence may be weak, crowded, insider-driven or luck; wallet addresses are not necessarily entities.",
+      "sourceIds": ["PUMP_SUCCESS_2026", "COPY_BOTS_2026"]
+    },
+    {
+      "id": "alpha.momentum",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Test multi-horizon price, volume and volatility trend as a conditional feature.",
+      "limits": "Published evidence conflicts and is at longer horizons; momentum can be crash-prone.",
+      "sourceIds": ["TREND_FACTOR_2025", "MOMENTUM_COUNTER_2025"]
+    },
+    {
+      "id": "alpha.social_attention",
+      "classification": "EMPIRICAL_FEATURE",
+      "eligibleUse": "feature_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Test mint-linked, decaying attention surprise with independent-author breadth and bot/coordination penalties.",
+      "limits": "Daily studies do not validate minute-scale entry; attention can follow price and be manufactured.",
+      "sourceIds": ["SOCIAL_CFR_2024", "SOCIAL_PLOS_2023", "COPY_BOTS_2026"]
+    },
+    {
+      "id": "execution.imitation_penalty",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Predict follower return after leader-to-follower delay, curve/price impact, exit latency and every cost rather than copying leader PnL.",
+      "limits": "The direction is structural; the magnitude varies by state, size and latency.",
+      "sourceIds": ["COPY_BOTS_2026", "JUPITER_SWAP_DOCS"]
+    },
+    {
+      "id": "execution.all_in_cost",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Model route/protocol/platform/creator fees, tips, impact, drift, MEV, failures and exit costs for every intent.",
+      "limits": "Cost and failure distributions are regime-, route-, size- and provider-dependent.",
+      "sourceIds": ["JUPITER_SWAP_DOCS", "JITO_SEND_DOCS", "FAILED_TX_2025", "JITO_SANDWICH_2025"]
+    },
+    {
+      "id": "validation.chronological_grouped",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Use chronological train/tune/test, purge overlapping labels and stress unseen creator/funder/entity groups.",
+      "limits": "Window, embargo and retraining cadence require data-dependent selection inside training data.",
+      "sourceIds": ["CATCHING_RUG_2026", "PBO"]
+    },
+    {
+      "id": "validation.multiple_testing",
+      "classification": "ENGINEERING_INVARIANT",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Log every trial and apply a predeclared backtest-overfitting or multiple-testing correction before promotion.",
+      "limits": "A corrected statistic still does not guarantee future profit.",
+      "sourceIds": ["PBO", "DSR"]
+    },
+    {
+      "id": "policy.minimum_single_buy_usd",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current alert threshold is 10000 USD.",
+      "limits": "No reviewed source establishes 10000 USD as return-optimal.",
+      "sourceIds": ["POLICY_V1"]
+    },
+    {
+      "id": "policy.freshness_and_chase",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current limits are 15 seconds maximum data age and 15 percent maximum copy move.",
+      "limits": "Opportunity decay depends on route, age, liquidity, leader size, latency and regime.",
+      "sourceIds": ["POLICY_V1", "COPY_BOTS_2026"]
+    },
+    {
+      "id": "policy.impact_and_slippage",
+      "classification": "RISK_GUARDRAIL",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current caps are 2 percent estimated impact and 8 percent required slippage.",
+      "limits": "They are conservative caps, not optimal targets; use all-in loss and failure trade-offs.",
+      "sourceIds": ["POLICY_V1", "JUPITER_SWAP_DOCS", "JITO_SANDWICH_2025"]
+    },
+    {
+      "id": "policy.token_numeric_cutoffs",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current graduated-token cutoffs include 30 SOL liquidity, 25 percent top-10, 10 percent related early holders and 3M USD market cap.",
+      "limits": "Feature families are supported but these universal cutoffs are not.",
+      "sourceIds": ["POLICY_V1", "MELT_2026", "CATCHING_RUG_2026"]
+    },
+    {
+      "id": "policy.entity_consensus",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current policy asks for three independent Tier-A entities for automatic-execution consideration.",
+      "limits": "No reviewed study validates three; correlated/copying entities are not independent.",
+      "sourceIds": ["POLICY_V1", "PUMP_SUCCESS_2026"]
+    },
+    {
+      "id": "policy.discovery_cutoffs",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current research flags use 10x volume acceleration and 30 percent 24-hour holder growth.",
+      "limits": "Growth can be manipulated, sybil-inflated or distorted from a near-zero baseline.",
+      "sourceIds": ["POLICY_V1", "MIDSUMMER_2026", "MELT_2026"]
+    },
+    {
+      "id": "policy.entity_weights",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current 0-100 weights and 75/60 tier cutoffs are an interpretable starting hypothesis.",
+      "limits": "The weights and cutoffs have not been fit or calibrated on a point-in-time project dataset.",
+      "sourceIds": ["POLICY_V1", "COPY_BOTS_2026"]
+    },
+    {
+      "id": "policy.paper_minimum",
+      "classification": "UNVALIDATED_HYPOTHESIS",
+      "eligibleUse": "paper_filter_only",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "One hundred eligible signals and seven calendar days are pipeline smoke-test minima.",
+      "limits": "They cannot establish statistical sufficiency or unlock live status.",
+      "sourceIds": ["POLICY_V1", "PBO", "DSR"]
+    },
+    {
+      "id": "policy.portfolio_caps",
+      "classification": "RISK_GUARDRAIL",
+      "eligibleUse": "hard_gate",
+      "promotionState": "PAPER_ONLY",
+      "requiresLocalCalibration": true,
+      "claim": "Current position, total exposure, daily/weekly loss and consecutive-loss caps are conservative governance limits.",
+      "limits": "They are not profit-optimal and require ruin, drawdown and dependence stress before any live proposal.",
+      "sourceIds": ["POLICY_V1"]
+    },
+    {
+      "id": "shortcut.provider_label_is_fact",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "A third-party smart-money, insider, security, organic or PnL label is not canonical truth.",
+      "limits": "Store provider definition/version, timestamp, confidence, raw evidence and contradictions.",
+      "sourceIds": ["SOLANA_RPC_DOCS", "HELIUS_DOCS"]
+    },
+    {
+      "id": "shortcut.relationship_equals_identity",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Same funder, bundle, transaction or popular token does not by itself prove common beneficial ownership.",
+      "limits": "Edges remain typed, source-specific and confidence-weighted with exchange/service exclusions.",
+      "sourceIds": ["MELT_2026", "SOLRUG_2026"]
+    },
+    {
+      "id": "shortcut.graduation_equals_safe_or_profitable",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "Graduation, migration, LP handling or renounced authority does not prove fair distribution, sellability or profit.",
+      "limits": "Verify current state, distribution, executable exit and post-migration behavior separately.",
+      "sourceIds": ["PUMP_PUBLIC_DOCS", "MELT_2026", "PUMP_SUCCESS_2026"]
+    },
+    {
+      "id": "shortcut.llm_authorizes_or_signs",
+      "classification": "REJECTED_SHORTCUT",
+      "eligibleUse": "forbidden",
+      "promotionState": "RESEARCH_ONLY",
+      "requiresLocalCalibration": false,
+      "claim": "An LLM cannot possess keys, create arbitrary instructions or independently authorize a transaction.",
+      "limits": "LLMs may parse unstructured evidence and explain deterministic decisions only.",
+      "sourceIds": ["POLICY_V1", "COPY_BOTS_2026"]
+    }
+  ]
+}
+
