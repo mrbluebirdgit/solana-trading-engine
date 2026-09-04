@@ -11,7 +11,7 @@ This matrix separates required secrets from sources that need no credential. Eac
 | 3 | GMGN | Supplemental wallet, market, and token-risk evidence | `GMGN_API_KEY` | Verified read-only |
 | 4 | Jupiter | Price and provider-neutral route quotes; later execution candidate | `JUPITER_API_KEY` | Verified read-only price; quote adapter ready |
 | 5 | Telegram Bot API | Immediate alerts and authenticated pause/status commands | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_ID` | **Next** |
-| 6 | Birdeye Data | Independent token, wallet, security, holder, liquidity, trade, and historical market evidence | `BIRDEYE_API_KEY` | Account/key required |
+| 6 | Birdeye Data | Independent token, wallet, security, holder, liquidity, trade, and historical market evidence | `BIRDEYE_API_KEY` | Verified read-only price access |
 | 7 | Cielo API | Secondary wallet feed, discovery, profiling, and alert reconciliation | `CIELO_API_KEY` | Account/plan/key required |
 | 8 | X API v2 | Authorized pre-crypto meme discovery, velocity, unique authors, and cross-community spread | `X_BEARER_TOKEN`; cost ceiling required | Developer app/key required |
 | 9 | DexScreener API | Independent pair, liquidity, volume, price, and profile cross-check | No key for documented public API | Adapter required |
