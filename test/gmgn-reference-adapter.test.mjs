@@ -97,3 +97,21 @@ test("does not echo a GMGN API key when verification fails", async () => {
     },
   );
 });
+
+test("classifies a rejected GMGN key without exposing it", async () => {
+  await assert.rejects(
+    checkGmgnReadAccess(TEST_KEY, {
+      execFileImpl: async () => {
+        const error = new Error("command failed");
+        error.code = 1;
+        error.stderr = `HTTP 401 invalid api key ${TEST_KEY}`;
+        throw error;
+      },
+    }),
+    (error) => {
+      assert.match(error.message, /authorization failed/);
+      assert.equal(error.message.includes(TEST_KEY), false);
+      return true;
+    },
+  );
+});
