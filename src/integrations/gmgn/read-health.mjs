@@ -2,7 +2,6 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const PINNED_CLI = "gmgn-cli@1.6.0";
 
 export async function checkGmgnReadAccess(
   apiKey,
@@ -10,7 +9,7 @@ export async function checkGmgnReadAccess(
     execFileImpl = execFileAsync,
     environment = process.env,
     platform = process.platform,
-    timeoutMs = 120_000,
+    timeoutMs = 45_000,
   } = {},
 ) {
   const credential = apiKey?.trim() ?? "";
@@ -19,10 +18,8 @@ export async function checkGmgnReadAccess(
     throw new Error("GMGN_API_KEY is required");
   }
 
-  const executable = platform === "win32" ? "npx.cmd" : "npx";
+  const executable = platform === "win32" ? "gmgn-cli.cmd" : "gmgn-cli";
   const args = [
-    "--yes",
-    PINNED_CLI,
     "market",
     "trending",
     "--chain",

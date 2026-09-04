@@ -33,8 +33,6 @@ jobs:
     name: Verify GMGN read-only configuration
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
 
     steps:
       - name: Check out repository
@@ -50,8 +48,13 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Install pinned GMGN verifier
+        run: npm install --global gmgn-cli@1.6.0
+
       - name: Verify GMGN read-only intelligence
         run: npm run verify:gmgn
+        env:
+          GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
 
   verify-helius:
     if: >-
