@@ -3,6 +3,7 @@ export function createObservationNotification(observation) {
     observation?.runtimeAuthority !== false ||
     observation?.decision?.runtimeAuthority !== false ||
     observation?.decision?.decision !== "ALERT_ONLY" ||
+    observation?.decision?.notificationEligible !== true ||
     observation?.alert?.runtimeAuthority !== false
   ) {
     return null;

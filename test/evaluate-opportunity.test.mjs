@@ -160,6 +160,7 @@ test("alerts on a fresh curve quote and never paper-approves without a market ta
     now: "2026-09-04T06:42:05.000Z",
   });
   assert.equal(result.decision, "ALERT_ONLY");
+  assert.equal(result.notificationEligible, false);
   assert.equal(result.reasons.some((reason) => reason.code === "live_locked"), true);
 });
 

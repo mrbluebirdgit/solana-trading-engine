@@ -158,7 +158,7 @@ export function parseObserverRuntime({
   const genericOpportunityAlertsEnabled = booleanControl(
     env.GENERIC_OPPORTUNITY_ALERTS_ENABLED,
     "GENERIC_OPPORTUNITY_ALERTS_ENABLED",
-    !narrativeRadarEnabled,
+    false,
   );
   const xBearerToken = optionalSecret(env.X_BEARER_TOKEN);
   const lunarCrushApiKey = optionalSecret(env.LUNARCRUSH_API_KEY);
