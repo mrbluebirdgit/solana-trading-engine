@@ -18,7 +18,7 @@ test("parses a live-locked observe-only runtime", () => {
   assert.equal(result.maximumEventAgeMs, 30_000);
   assert.equal(result.observationLogPath, "/tmp/project/data/observations.jsonl");
   assert.equal(result.narrativeRadarEnabled, false);
-  assert.equal(result.genericOpportunityAlertsEnabled, true);
+  assert.equal(result.genericOpportunityAlertsEnabled, false);
   assert.equal(result.narrativeAlertMinimumPriority, 70);
   assert.equal(result.narrativePollIntervalMs, 1_200_000);
   assert.equal(result.birdeyeDailyRequestLimit, 100);

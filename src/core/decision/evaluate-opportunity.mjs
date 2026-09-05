@@ -249,6 +249,7 @@ function finalize(decision, reasons, stage, quotes) {
     cutoffSlot: stage?.cutoffSlot ?? null,
     buyPriceImpactPercent: quotes?.buyPriceImpactPercent ?? null,
     sellPriceImpactPercent: quotes?.sellPriceImpactPercent ?? null,
+    notificationEligible: false,
     runtimeAuthority: false,
   });
 }
