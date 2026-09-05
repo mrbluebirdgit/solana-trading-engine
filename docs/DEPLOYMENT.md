@@ -60,7 +60,9 @@ GitHub Actions secrets are not automatically available to a deployment host.
 | `NARRATIVE_RADAR_ENABLED` | No | Enables observation-only attention clustering and mint matching; defaults to `false` |
 | `X_BEARER_TOKEN` | Conditional | X trends and optional recent-search access |
 | `LUNARCRUSH_API_KEY` | Conditional | Aggregate topic discovery |
+| `LUNARCRUSH_PLAN` | No | Plan gate; `hobby` disables unsupported topic calls in production |
 | `NEWSAPI_KEY` | Conditional | Top-headline discovery |
+| `NEWSAPI_PLAN` | No | Plan gate; `developer` disables delayed development-only calls in production |
 | `NARRATIVE_NEWS_COUNTRIES` | No | One to five comma-separated ISO alpha-2 headline scopes; defaults to `us` |
 | `NARRATIVE_RSS_FEEDS` | Conditional | Comma/newline-separated approved HTTPS RSS/Atom feeds |
 | `NARRATIVE_POLL_INTERVAL_MS` | No | Attention polling interval; defaults to `1200000` ms (20 minutes) |
@@ -75,17 +77,22 @@ GitHub Actions secrets are not automatically available to a deployment host.
 | `GENERIC_OPPORTUNITY_ALERTS_ENABLED` | No | Broad stage/quote alerts; defaults off in narrative mode to prevent duplicate alert traffic |
 | `BIRDEYE_API_KEY` | No | Candidate-triggered token overview, security, and price evidence |
 | `GMGN_API_KEY` | No | Candidate-triggered token intelligence and price evidence; never signing |
+| `SOLSCAN_API_KEY` | No | Candidate-triggered metadata, holders, authority, and fallback price evidence |
 | `CANDIDATE_PROVIDER_TIMEOUT_MS` | No | Maximum bounded enrichment wait; defaults to `6000` ms |
 | `BIRDEYE_DAILY_REQUEST_LIMIT` | No | Conservative configured ceiling; defaults to `100` |
 | `BIRDEYE_DAILY_REQUEST_RESERVE` | No | Calls held outside routine enrichment; defaults to `10` |
 | `GMGN_DAILY_REQUEST_LIMIT` | No | Conservative configured ceiling; defaults to `50` |
 | `GMGN_DAILY_REQUEST_RESERVE` | No | Calls held outside routine enrichment; defaults to `5` |
-| `NARRATIVE_OUTCOME_TRACKING_ENABLED` | No | Defaults on when Birdeye or GMGN is configured |
+| `SOLSCAN_DAILY_REQUEST_LIMIT` | No | Conservative configured ceiling; defaults to `250` |
+| `SOLSCAN_DAILY_REQUEST_RESERVE` | No | Calls held outside routine enrichment; defaults to `25` |
+| `NARRATIVE_OUTCOME_TRACKING_ENABLED` | No | Defaults on when Birdeye, GMGN, or Solscan is configured |
 | `NARRATIVE_OUTCOME_NOTIFICATIONS_ENABLED` | No | Sends measured price follow-ups; defaults to `true` |
 | `NARRATIVE_OUTCOME_CHECKPOINTS_MS` | No | Defaults to 1, 5, 15, and 60 minutes |
 
-When `NARRATIVE_RADAR_ENABLED=true`, at least one discovery source—X,
-LunarCrush, NewsAPI, or approved RSS—must be configured. Social and news keys
+When `NARRATIVE_RADAR_ENABLED=true`, at least one production-eligible discovery
+source—X API, a social-enabled LunarCrush plan, a production NewsAPI plan, or
+approved RSS—must be configured. A Hobby LunarCrush key and Developer NewsAPI
+key are retained for checks but do not qualify as production discovery. Social and news keys
 are read-only data credentials. They do not replace the four baseline values
 required by the notifying observer image, and GitHub Actions secrets are not
 automatically available on the deployment host.
@@ -124,7 +131,7 @@ docker run --rm --env-file /secure/host/path/observer.env \
 
 The combined observer preflight opens and acknowledges a Helius subscription,
 requests a read-only Jupiter SOL-to-USDC route, optionally tests configured
-Birdeye and GMGN read access, and sends one real Telegram test message to
+Birdeye, GMGN, and Solscan read access, and sends one real Telegram test message to
 `TELEGRAM_ALLOWED_CHAT_ID`. It never builds, signs, or submits a transaction.
 
 `/secure/host/path/observer.env` is an example location outside the repository.

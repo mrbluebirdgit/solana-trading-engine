@@ -4,11 +4,11 @@ A private, modular system for researching Solana activity, evaluating trade oppo
 
 ## Current status
 
-The repository foundation and credential-validation workflows for Helius, Jupiter, Birdeye, GMGN, and the observation worker are implemented. Telegram Bot delivery is implemented but still requires the operator's Bot token and allowed chat ID; the separate future Telegram user-account ingestion path currently has only a local format validator. Birdeye REST and the exact-locked official GMGN CLI now provide candidate-triggered, read-only evidence after a narrative match clears the alert floor. Persisted request budgets and provider backoff keep those calls bounded. Research governance is explicit: material rules carry a source, evidence class, limitations, and calibration status, and research hypotheses must define falsification tests before promotion. The current numeric policy contains paper-only hypotheses and conservative guardrails—not empirically proven optimums.
+The repository foundation and credential-validation workflows for Helius, Jupiter, Birdeye, GMGN, Solscan, and the observation worker are implemented. Telegram Bot delivery is implemented but still requires the operator's Bot token and allowed chat ID; the separate future Telegram user-account ingestion path currently has only a local format validator. Birdeye REST, the exact-locked official GMGN CLI, and Solscan Pro REST now provide candidate-triggered, read-only evidence after a narrative match clears the alert floor. Persisted request budgets and provider backoff keep those calls bounded. Research governance is explicit: material rules carry a source, evidence class, limitations, and calibration status, and research hypotheses must define falsification tests before promotion. The current numeric policy contains paper-only hypotheses and conservative guardrails—not empirically proven optimums.
 
-The read-only canonical Pump/PumpSwap stage resolver, Helius point collector, Pump log observer, Jupiter intended-size quote adapter, and channel-agnostic alert delivery exist. An observation-only narrative radar adds modular X, LunarCrush, NewsAPI, approved RSS, and GDELT attention collection; shared entity extraction and clustering; Helius/DexScreener mint enrichment; Pump mint matching; research-priority scoring; candidate-triggered Birdeye/GMGN evidence; ledger evidence; and Telegram alerts. Successful alerts with an observed price are followed at 1, 5, 15, and 60 minutes, with point-to-point changes persisted and optionally sent to Telegram. The observer remains live-locked: the current evaluator emits only `REJECT` or `ALERT_ONLY`; `PAPER_ELIGIBLE` is reserved and currently unreachable. A calibrated scorer, paper executor, transactional paper-state persistence, reconnect backfill, and a confirmed always-on deployment do not exist. No master trading executor exists, and live trading remains locked.
+The read-only canonical Pump/PumpSwap stage resolver, Helius point collector, Pump log observer, Jupiter intended-size quote adapter, and channel-agnostic alert delivery exist. An observation-only narrative radar adds modular X, plan-eligible LunarCrush and NewsAPI, approved RSS, and GDELT attention collection; shared entity extraction and clustering; Helius/DexScreener mint enrichment; Pump mint matching; research-priority scoring; candidate-triggered Birdeye/GMGN/Solscan evidence; ledger evidence; and Telegram alerts. In narrative-only mode, Jupiter is not called for every raw mint. Successful alerts with an observed price are followed at 1, 5, 15, and 60 minutes, with point-to-point changes persisted and optionally sent to Telegram. The observer remains live-locked: the current evaluator emits only `REJECT` or `ALERT_ONLY`; `PAPER_ELIGIBLE` is reserved and currently unreachable. A calibrated scorer, paper executor, transactional paper-state persistence, reconnect backfill, and a confirmed always-on deployment do not exist. No master trading executor exists, and live trading remains locked.
 
-See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [narrative radar](docs/NARRATIVE_RADAR.md), [evidence ledger](docs/EVIDENCE_LEDGER.md), [research and calibration protocol](docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md), [master decision contract](docs/MASTER_DECISION_CONTRACT.md), [market participation feature specification](docs/TRAFFIC_FEATURE_SPECIFICATION.md), [Pump stage resolver](docs/PUMP_STAGE_RESOLVER.md), [audit of supplied recommendations](docs/SUPPLIED_RECOMMENDATION_AUDIT.md), [machine-readable evidence registry](config/evidence-registry.v1.json), [narrative source catalog](config/narrative-source-catalog.v1.json), [traffic feature catalog](config/traffic-feature-catalog.v1.json), [paper-only hypothesis candidates](config/hypothesis-candidates.v1.json), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
+See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [narrative radar](docs/NARRATIVE_RADAR.md), [evidence ledger](docs/EVIDENCE_LEDGER.md), [research and calibration protocol](docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md), [master decision contract](docs/MASTER_DECISION_CONTRACT.md), [market participation feature specification](docs/TRAFFIC_FEATURE_SPECIFICATION.md), [Pump stage resolver](docs/PUMP_STAGE_RESOLVER.md), [audit of supplied recommendations](docs/SUPPLIED_RECOMMENDATION_AUDIT.md), [machine-readable evidence registry](config/evidence-registry.v1.json), [provider subscription policy](config/provider-subscriptions.v1.json), [narrative source catalog](config/narrative-source-catalog.v1.json), [traffic feature catalog](config/traffic-feature-catalog.v1.json), [paper-only hypothesis candidates](config/hypothesis-candidates.v1.json), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
 
 ## Observation beta quickstart
 
@@ -36,18 +36,21 @@ the subscription and local observation storage remains writable.
 
 ### Optional narrative radar
 
-Set `NARRATIVE_RADAR_ENABLED=true` and configure at least one of
-`X_BEARER_TOKEN`, `LUNARCRUSH_API_KEY`, `NEWSAPI_KEY`, or
-`NARRATIVE_RSS_FEEDS`. The radar runs inside the same observer, writes to the
+Set `NARRATIVE_RADAR_ENABLED=true` and configure at least one production-eligible
+source: X API, a social-enabled LunarCrush plan, a production NewsAPI plan, or
+`NARRATIVE_RSS_FEEDS`. A Hobby LunarCrush key and Developer NewsAPI key do not
+qualify in the production container. The radar runs inside the same observer, writes to the
 same ledger, and uses the same optional Telegram Bot channel. It has no default
 keywords or wallet lists, and its uncalibrated priority score can route alerts
 only—it cannot authorize a trade. See the [radar runbook](docs/NARRATIVE_RADAR.md).
 
-Add `BIRDEYE_API_KEY` and/or `GMGN_API_KEY` for bounded evidence enrichment and
+Add `BIRDEYE_API_KEY`, `GMGN_API_KEY`, and/or `SOLSCAN_API_KEY` for bounded evidence enrichment and
 post-alert price checks. These providers are not polled for every mint. By
 default, generic opportunity alerts are disabled when the narrative radar is
 enabled so Telegram receives only threshold-clearing narrative alerts and their
-measured follow-ups. LunarCrush and NewsAPI also use persisted daily ceilings,
+measured follow-ups. `LUNARCRUSH_PLAN=hobby` disables unsupported social-topic
+calls in production, and `NEWSAPI_PLAN=developer` disables delayed,
+development-only NewsAPI calls in production. LunarCrush and NewsAPI also use persisted daily ceilings,
 exponential failure backoff, and `Retry-After` handling rather than relying on
 one unlimited polling clock.
 

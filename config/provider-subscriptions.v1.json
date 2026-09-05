@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-05",
+  "purpose": "Operator-reported runtime subscription capacity and conservative engine policy; contains no credentials and grants no trading authority.",
+  "runtimeAuthority": false,
+  "providers": [
+    {
+      "id": "helius",
+      "reportedPlan": "Developer",
+      "reportedPriceUsdMonthly": 50,
+      "reportedLimits": {
+        "creditsPerMonth": 10000000,
+        "requestsPerSecond": 50,
+        "sendTransactionPerSecond": 5
+      },
+      "runtimeRole": "Primary Solana RPC, Pump event stream, transaction resolution, and DAS metadata",
+      "enginePolicy": "Real-time stream plus bounded point reads; no signing or transaction submission",
+      "upgradeDecision": "keep_current",
+      "reference": "https://www.helius.dev/pricing"
+    },
+    {
+      "id": "birdeye",
+      "reportedPlan": "2.5M-CU tier",
+      "reportedPriceUsdMonthly": 40,
+      "reportedLimits": {
+        "computeUnitsPerMonth": 2500000,
+        "requestsPerSecond": 15,
+        "websocket": false
+      },
+      "runtimeRole": "Candidate-triggered market, liquidity, holder, security, and checkpoint-price evidence",
+      "enginePolicy": "Two REST calls only after an alert-eligible narrative match; persisted daily request budget",
+      "upgradeDecision": "keep_current",
+      "reference": "https://birdeye.so/pro"
+    },
+    {
+      "id": "gmgn",
+      "reportedPlan": "Free",
+      "reportedPriceUsdMonthly": 0,
+      "reportedLimits": {
+        "weight": 5,
+        "usageClass": "light monitoring"
+      },
+      "runtimeRole": "Candidate-triggered market, wallet-label, token-risk, and backup checkpoint-price evidence",
+      "enginePolicy": "Exact-version locked read-only CLI command; persisted daily request budget; private keys rejected",
+      "upgradeDecision": "keep_current",
+      "reference": "https://gmgn.ai/ai?chain=sol&tab=paid_plans"
+    },
+    {
+      "id": "solscan",
+      "reportedPlan": "Free Level 1",
+      "reportedPriceUsdMonthly": 0,
+      "reportedLimits": {
+        "computeUnitsPerMonth": 10000000,
+        "requestsPerMinute": 60
+      },
+      "runtimeRole": "Candidate-triggered token metadata, holder concentration, authority checks, and last-resort checkpoint prices",
+      "enginePolicy": "Two REST calls only after an alert-eligible narrative match; persisted daily request budget",
+      "upgradeDecision": "keep_current",
+      "reference": "https://solscan.io/apis"
+    },
+    {
+      "id": "jupiter",
+      "reportedPlan": "Free",
+      "reportedPriceUsdMonthly": 0,
+      "reportedLimits": {
+        "requestsPerSecond": 0.5
+      },
+      "runtimeRole": "Read-only route and price verification",
+      "enginePolicy": "Startup verification and opt-in generic opportunity lane; no per-mint call in narrative-only mode",
+      "upgradeDecision": "keep_current",
+      "reference": "https://dev.jup.ag/portal/rate-limit"
+    },
+    {
+      "id": "lunarcrush",
+      "reportedPlan": "Hobby",
+      "reportedPriceUsdMonthly": 0,
+      "reportedLimits": {
+        "requestsPerMinute": 4,
+        "requestsPerDay": 100,
+        "socialTopicAccess": false
+      },
+      "runtimeRole": "Aggregate social-topic discovery when the account plan supports the endpoint",
+      "enginePolicy": "Disabled in production on Hobby; a stored key alone does not enable unsupported social endpoints",
+      "upgradeDecision": "measure_before_upgrade",
+      "reference": "https://lunarcrush.com/en/developers/api"
+    },
+    {
+      "id": "newsapi",
+      "reportedPlan": "Developer",
+      "reportedPriceUsdMonthly": 0,
+      "reportedLimits": {
+        "requestsPerDay": 100,
+        "articleDelayHours": 24,
+        "productionUse": false
+      },
+      "runtimeRole": "Local development and adapter verification only on the reported plan",
+      "enginePolicy": "Disabled in production on Developer; use approved RSS for live discovery",
+      "upgradeDecision": "do_not_upgrade_for_beta",
+      "reference": "https://newsapi.org/pricing"
+    },
+    {
+      "id": "telegram_bot",
+      "reportedPlan": "Bot API",
+      "reportedPriceUsdMonthly": 0,
+      "reportedLimits": {
+        "telegramPremiumRequired": false
+      },
+      "runtimeRole": "Startup, candidate, and measured outcome notifications",
+      "enginePolicy": "One allowlisted chat; no Telegram Premium dependency",
+      "upgradeDecision": "keep_current",
+      "reference": "https://core.telegram.org/bots/api"
+    }
+  ],
+  "nonRuntimeSubscriptions": [
+    "ChatGPT",
+    "Cursor",
+    "GitHub",
+    "Grok",
+    "Telegram Premium",
+    "X Premium"
+  ],
+  "notes": [
+    "Development-product subscriptions do not add runtime provider quota.",
+    "X Premium is not X API access.",
+    "A provider subscription improves access and reliability; it does not prove predictive value or profitability."
+  ]
+}

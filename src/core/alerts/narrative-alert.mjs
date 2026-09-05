@@ -59,6 +59,7 @@ export function formatNarrativeAlert(match, evidence = null) {
     `provider rug ratio: ${share(evidence.market?.providerRugRatio)} (${evidence.market?.rugRatioProvider ?? "unknown"})`,
     providerLine(evidence, "birdeye"),
     providerLine(evidence, "gmgn"),
+    providerLine(evidence, "solscan"),
   ] : [];
   return Object.freeze({
     title: `NARRATIVE ${shortMint(mint)} · ${narrative.label}`,

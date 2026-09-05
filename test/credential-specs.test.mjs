@@ -21,6 +21,10 @@ const validJupiterEnvironment = Object.freeze({
   JUPITER_API_KEY: "jupiter_api_key_for_testing",
 });
 
+const validSolscanEnvironment = Object.freeze({
+  SOLSCAN_API_KEY: "solscan_api_key_for_testing_only",
+});
+
 const validNarrativeEnvironment = Object.freeze({
   X_BEARER_TOKEN: "x-read-only-bearer-token-for-testing",
   LUNARCRUSH_API_KEY: "lunarcrush_read_only_key_for_testing",
@@ -65,6 +69,15 @@ test("rejects a missing or malformed Jupiter API key", () => {
     validateProvider("jupiter", { JUPITER_API_KEY: "contains spaces" }).ok,
     false,
   );
+});
+
+test("accepts a correctly formatted Solscan API key", () => {
+  assert.equal(validateProvider("solscan", validSolscanEnvironment).ok, true);
+});
+
+test("rejects a missing or malformed Solscan API key", () => {
+  assert.equal(validateProvider("solscan", {}).ok, false);
+  assert.equal(validateProvider("solscan", { SOLSCAN_API_KEY: "contains spaces" }).ok, false);
 });
 
 test("accepts a correctly formatted Helius API key", () => {

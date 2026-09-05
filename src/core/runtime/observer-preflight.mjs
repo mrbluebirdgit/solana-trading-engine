@@ -1,6 +1,7 @@
 import { deliverTelegramBotAlert } from "../../integrations/alerts/deliver.mjs";
 import { checkBirdeyeReadAccess } from "../../integrations/birdeye/read-health.mjs";
 import { checkGmgnReadAccess } from "../../integrations/gmgn/read-health.mjs";
+import { checkSolscanReadAccess } from "../../integrations/solscan/read-health.mjs";
 import { runPumpLogsObserver } from "../../integrations/helius/logs-observer.mjs";
 import { requestJupiterQuote } from "../../integrations/jupiter/quote.mjs";
 import { NATIVE_SOL_MINT } from "../../integrations/pump/program-ids.mjs";
@@ -15,6 +16,7 @@ export async function verifyObserverLive(
     telegramChatId,
     birdeyeApiKey = null,
     gmgnApiKey = null,
+    solscanApiKey = null,
   } = {},
   {
     runObserverImpl = runPumpLogsObserver,
@@ -22,6 +24,7 @@ export async function verifyObserverLive(
     deliverTelegramImpl = deliverTelegramBotAlert,
     checkBirdeyeImpl = checkBirdeyeReadAccess,
     checkGmgnImpl = checkGmgnReadAccess,
+    checkSolscanImpl = checkSolscanReadAccess,
     timeoutMs = 20_000,
     setTimeoutImpl = setTimeout,
     clearTimeoutImpl = clearTimeout,
@@ -89,10 +92,14 @@ export async function verifyObserverLive(
   if (typeof gmgnApiKey === "string" && gmgnApiKey.trim() !== "") {
     supplementalChecks.push(checkGmgnImpl(gmgnApiKey));
   }
+  if (typeof solscanApiKey === "string" && solscanApiKey.trim() !== "") {
+    supplementalChecks.push(checkSolscanImpl(solscanApiKey));
+  }
   await Promise.all(supplementalChecks);
   const supplementalProviders = Object.freeze([
     ...(birdeyeApiKey?.trim() ? ["Birdeye"] : []),
     ...(gmgnApiKey?.trim() ? ["GMGN"] : []),
+    ...(solscanApiKey?.trim() ? ["Solscan"] : []),
   ]);
 
   const delivery = await deliverTelegramImpl({

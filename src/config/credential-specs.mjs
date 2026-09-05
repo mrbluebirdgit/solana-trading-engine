@@ -47,6 +47,14 @@ const credentialSpecs = Object.freeze({
       invalidMessage: "must be 16-512 non-whitespace characters",
     }),
   ]),
+  solscan: Object.freeze([
+    Object.freeze({
+      name: "SOLSCAN_API_KEY",
+      description: "Solscan Pro read-only API key",
+      validate: (value) => /^[!-~]{16,512}$/.test(value),
+      invalidMessage: "must be 16-512 non-whitespace characters",
+    }),
+  ]),
   telegram: Object.freeze([
     Object.freeze({
       name: "TELEGRAM_API_ID",
