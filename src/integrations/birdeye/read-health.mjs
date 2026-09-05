@@ -82,3 +82,4 @@ export const birdeyeHealthConstants = Object.freeze({
   priceEndpoint: DEFAULT_PRICE_ENDPOINT,
   solMint: SOL_MINT,
 });
+

@@ -20,3 +20,4 @@ if (!validation.ok) {
     process.exitCode = 1;
   }
 }
+

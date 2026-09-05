@@ -237,3 +237,4 @@ test("validator rejects non-boolean calibration flags", async () => {
     /requiresLocalCalibration must be boolean/,
   );
 });
+

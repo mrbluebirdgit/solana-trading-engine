@@ -68,3 +68,4 @@ test("rejects a malformed Birdeye price response", async () => {
     /did not contain a valid SOL price/,
   );
 });
+

@@ -3,6 +3,15 @@ import { NATIVE_SOL_MINT } from "../pump/program-ids.mjs";
 
 export const DEFAULT_INTENDED_BUY_LAMPORTS = "50000000";
 
+function observedAt(clock) {
+  const value = clock();
+  const timestamp = new Date(value);
+  if (!Number.isFinite(timestamp.valueOf())) {
+    throw new TypeError("quote clock returned an invalid timestamp");
+  }
+  return timestamp.toISOString();
+}
+
 function ratio(buyOut, sellOutLamports, buyInLamports) {
   if (!buyOut || !sellOutLamports || !buyInLamports) return null;
   const buyIn = Number(buyInLamports);
@@ -24,6 +33,9 @@ export async function quoteIntendedSize(
     throw new TypeError("buyLamports must be a positive integer string");
   }
 
+  const clock = typeof options.now === "function" ? options.now : () => new Date();
+  const { now: _now, quotedAt: legacyQuotedAt, ...requestOptions } = options;
+  const buyRequestedAt = legacyQuotedAt ?? observedAt(clock);
   const buy = await requestJupiterQuote(
     {
       apiKey,
@@ -31,9 +43,11 @@ export async function quoteIntendedSize(
       outputMint: mint.trim(),
       amountAtomic: String(buyLamports),
     },
-    options,
+    { ...requestOptions, quotedAt: buyRequestedAt },
   );
+  const buyReceivedAt = observedAt(clock);
 
+  const sellRequestedAt = observedAt(clock);
   const sell = await requestJupiterQuote(
     {
       apiKey,
@@ -41,8 +55,9 @@ export async function quoteIntendedSize(
       outputMint: NATIVE_SOL_MINT,
       amountAtomic: buy.output.amountAtomic,
     },
-    options,
+    { ...requestOptions, quotedAt: sellRequestedAt },
   );
+  const sellReceivedAt = observedAt(clock);
 
   return Object.freeze({
     schemaVersion: 1,
@@ -52,6 +67,12 @@ export async function quoteIntendedSize(
     intendedBuyLamports: String(buyLamports),
     buy,
     sell,
+    quoteSequence: Object.freeze({
+      buyRequestedAt,
+      buyReceivedAt,
+      sellRequestedAt,
+      sellReceivedAt,
+    }),
     roundTripLamportsRecovered: sell.output.amountAtomic,
     roundTripRetention: ratio(
       buy.output.amountAtomic,

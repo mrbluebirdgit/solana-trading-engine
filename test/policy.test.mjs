@@ -15,21 +15,22 @@ async function loadPolicy() {
 test("loads the versioned policy with the requested opportunity thresholds", async () => {
   const policy = await loadPolicy();
 
-  assert.equal(policy.policyVersion, "1.1.0");
+  assert.equal(policy.policyVersion, "1.2.0");
   assert.equal(policy.alerts.minimumSingleBuyUsd, 10_000);
   assert.equal(policy.freshnessAndExecution.maximumSignalDataAgeSeconds, 15);
   assert.equal(policy.freshnessAndExecution.maximumCopyPriceMovePercent, 15);
   assert.equal(policy.freshnessAndExecution.maximumPriceImpactPercent, 2);
   assert.equal(policy.freshnessAndExecution.maximumSlippagePercent, 8);
-  assert.equal(policy.tokenSafety.graduated.minimumLiquiditySol, 30);
   assert.equal(policy.tokenSafety.graduated.maximumTop10HolderPercent, 25);
+  assert.equal(policy.tokenSafety.graduated.requireSizeSpecificEntryAndExitDepth, true);
+  assert.equal(policy.tokenSafety.graduated.requireTypedCoordinationEvidence, true);
   assert.equal(
-    policy.tokenSafety.graduated.maximumBundlerOrRelatedEarlyHolderPercent,
-    10,
+    policy.tokenSafety.graduated.requireDenominatorMatchedCoordinationMetrics,
+    true,
   );
   assert.equal(
-    policy.tokenSafety.graduated.minimumIndependentTierAEntitiesForAutoExecution,
-    3,
+    policy.tokenSafety.graduated.automaticExecutionFromEntityCountForbidden,
+    true,
   );
   assert.equal(Object.isFrozen(policy), true);
 });
@@ -80,6 +81,10 @@ test("prevents static wallet lists from becoming strategy or execution authority
 
   await assert.rejects(
     access(new URL("../config/seed-wallets.v1.json", import.meta.url)),
+    (error) => error?.code === "ENOENT",
+  );
+  await assert.rejects(
+    access(new URL("../config/seed-tokens.csv", import.meta.url)),
     (error) => error?.code === "ENOENT",
   );
 

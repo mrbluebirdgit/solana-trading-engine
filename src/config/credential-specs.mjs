@@ -31,6 +31,22 @@ const credentialSpecs = Object.freeze({
       invalidMessage: "must be 16-512 non-whitespace characters",
     }),
   ]),
+  lunarcrush: Object.freeze([
+    Object.freeze({
+      name: "LUNARCRUSH_API_KEY",
+      description: "LunarCrush read-only social intelligence API key",
+      validate: (value) => /^[!-~]{16,512}$/.test(value),
+      invalidMessage: "must be 16-512 non-whitespace characters",
+    }),
+  ]),
+  newsapi: Object.freeze([
+    Object.freeze({
+      name: "NEWSAPI_KEY",
+      description: "NewsAPI read-only news discovery API key",
+      validate: (value) => /^[!-~]{16,512}$/.test(value),
+      invalidMessage: "must be 16-512 non-whitespace characters",
+    }),
+  ]),
   telegram: Object.freeze([
     Object.freeze({
       name: "TELEGRAM_API_ID",
@@ -43,6 +59,14 @@ const credentialSpecs = Object.freeze({
       description: "Telegram application secret hash",
       validate: (value) => /^[a-f0-9]{32}$/i.test(value),
       invalidMessage: "must be exactly 32 hexadecimal characters",
+    }),
+  ]),
+  x: Object.freeze([
+    Object.freeze({
+      name: "X_BEARER_TOKEN",
+      description: "X API read-only bearer token",
+      validate: (value) => /^[!-~]{20,2048}$/.test(value),
+      invalidMessage: "must be 20-2048 non-whitespace characters",
     }),
   ]),
 });

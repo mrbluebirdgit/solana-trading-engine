@@ -75,3 +75,4 @@ export function decodePublicKey(value, field = "address") {
   }
   return bytes;
 }
+

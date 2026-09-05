@@ -1011,3 +1011,4 @@ export function createTrafficSnapshot(input) {
     provenance: normalizedProvenance,
   });
 }
+

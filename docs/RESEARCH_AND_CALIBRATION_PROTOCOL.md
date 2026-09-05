@@ -189,3 +189,4 @@ The existing `100 signals / 7 days` policy is only a pipeline smoke-test minimum
 
 Provider upgrades follow measured ingestion gaps, rate-limit saturation, latency, historical-data needs or redundancy requirements. No subscription is purchased or upgraded because a paper mentions the provider, and no paid plan is counted as evidence of predictive edge.
 
+

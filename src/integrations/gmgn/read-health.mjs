@@ -3,6 +3,38 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+const CHILD_ENVIRONMENT_ALLOWLIST = Object.freeze([
+  "PATH",
+  "Path",
+  "PATHEXT",
+  "SystemRoot",
+  "SYSTEMROOT",
+  "WINDIR",
+  "ComSpec",
+  "COMSPEC",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+  "HOME",
+  "USERPROFILE",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TZ",
+]);
+
+function createChildEnvironment(environment, credential) {
+  const childEnvironment = { GMGN_API_KEY: credential };
+
+  for (const key of CHILD_ENVIRONMENT_ALLOWLIST) {
+    if (typeof environment?.[key] === "string" && environment[key] !== "") {
+      childEnvironment[key] = environment[key];
+    }
+  }
+
+  return childEnvironment;
+}
+
 function classifyFailure(error, credential) {
   const diagnostic = `${error?.stdout ?? ""}\n${error?.stderr ?? ""}`.replaceAll(
     credential,
@@ -14,7 +46,7 @@ function classifyFailure(error, credential) {
   }
 
   if (/\b403\b|forbidden|ip.?whitelist/i.test(diagnostic)) {
-    return "GMGN denied the API key or runner IP (permission failed)";
+    return "GMGN denied the API key or verifier IP (permission failed)";
   }
 
   if (/\b429\b|rate.?limit/i.test(diagnostic)) {
@@ -26,7 +58,7 @@ function classifyFailure(error, credential) {
   }
 
   if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|network/i.test(diagnostic)) {
-    return "GMGN could not be reached from the GitHub runner";
+    return "GMGN could not be reached from the local verifier";
   }
 
   const status = Number.isInteger(error?.code)
@@ -68,7 +100,7 @@ export async function checkGmgnReadAccess(
   try {
     result = await execFileImpl(executable, args, {
       encoding: "utf8",
-      env: { ...process.env, ...environment, GMGN_API_KEY: credential },
+      env: createChildEnvironment(environment, credential),
       maxBuffer: 2_000_000,
       timeout: timeoutMs,
       windowsHide: true,

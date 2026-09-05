@@ -23,7 +23,7 @@
   ],
   "properties": {
     "$schema": { "type": "string" },
-    "policyVersion": { "const": "1.1.0" },
+    "policyVersion": { "const": "1.2.0" },
     "projectName": { "const": "solana-trading-engine" },
     "status": { "enum": ["BUILDING", "PAPER", "LIVE_LOCKED", "PAUSED"] },
     "chain": { "const": "solana" },

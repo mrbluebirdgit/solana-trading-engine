@@ -3,7 +3,7 @@
 Status: **RESEARCH CONTRACT — LIVE-LOCKED**  
 Runtime authority: **none**
 
-This specification turns the supplied meme-coin “traffic” notes into measurable, provider-independent fields. It does not install a magic formula, authorize a buy, or claim that any historical cutoff maximizes profit. The machine-readable contract is `config/traffic-feature-catalog.v1.json`; supplied numeric bands are isolated in the non-authoritative `config/hypothesis-candidates.v1.json`; and the `TrafficSnapshot` schema and validation boundary are implemented in `src/core/intelligence/traffic-snapshot.mjs`. The Pump/PumpSwap collectors, stage resolver, launch-cohort reconstruction and migration-LP verifier that would populate the schema are not implemented yet.
+This specification turns the supplied meme-coin “traffic” notes into measurable, provider-independent fields. It does not install a magic formula, authorize a buy, or claim that any historical cutoff maximizes profit. The machine-readable contract is `config/traffic-feature-catalog.v1.json`; supplied numeric bands are isolated in the non-authoritative `config/hypothesis-candidates.v1.json`; and the `TrafficSnapshot` schema and validation boundary are implemented in `src/core/intelligence/traffic-snapshot.mjs`. The canonical Pump/PumpSwap stage resolver, a read-only Helius point collector, a live-locked Pump log observer, an append-only observation ledger, and the separate observation-only [narrative radar](NARRATIVE_RADAR.md) exist. The radar can collect attention and match it to mints, but it does not populate a fully aligned historical `TrafficSnapshot` or authorize a trade. Durable market-traffic collectors, launch-cohort reconstruction, canonical migration-LP evidence collection, transactional paper-state persistence, and an actual always-on deployment are not implemented yet.
 
 ## Operational definition
 
@@ -95,14 +95,14 @@ For a canonical Pump migration, verify the canonical PumpSwap pool plus the migr
 
 ### Venue stage
 
-Pump lifecycle stage comes from current program/account state—not USD market cap. The resolver must read pinned program/config data, quote mint, curve completion and canonical pool identity, then emit these predicates:
+Pump lifecycle stage comes from current program/account state—not USD market cap. The resolver must read program/config data interpreted against a recorded, reviewed IDL reference, quote mint, curve completion and canonical pool identity, then emit these predicates:
 
 | Stage | Required canonical evidence |
 |---|---|
-| `pump_curve_active` | Bonding-curve `complete = false` |
-| `migration_pending` | Bonding-curve `complete = true` and canonical PumpSwap pool absent |
-| `pumpswap_amm` | Canonical PumpSwap pool present |
-| `other_amm` | A verified non-canonical AMM relationship |
+| `pump_curve_active` | Exact curve PDA explicitly exists; Pump owner, decode, quote mint, reserves and supply validate; `complete = false` |
+| `migration_pending` | The same fully validated curve has `complete = true`, and the exact canonical PumpSwap pool is explicitly absent |
+| `pumpswap_amm` | Exact canonical pool explicitly exists; PumpSwap owner, decode, base/quote mints and PDA relationship validate |
+| `other_amm` | Reserved until a non-PumpSwap venue decoder/program ID is allowlisted; v1 emits `unknown` for caller-supplied third-party pool flags |
 | `unknown` | Required state unavailable, stale or contradictory |
 
 Curve completion and migration are separate state changes. Current `migrate`/`migrate_v2` operations are permissionless and idempotent; they are not an automatic transition that can be assumed when `complete` flips. PumpSwap is the current canonical destination, and the legacy Raydium withdrawal path is disabled. Third-party pools remain `other_amm` rather than evidence of canonical migration.
@@ -119,7 +119,7 @@ Social data is confirmatory and may be useful for graduation/attention research,
 
 | Source | Primary responsibility | Important limitation |
 |---|---|---|
-| Canonical Solana + pinned Pump IDL | Program state, slots, instructions, balances, authorities, curve/pool state, fills | Raw transactions require venue-aware parsing |
+| Canonical Solana + recorded Pump IDL reference | Program state, slots, instructions, balances, authorities, curve/pool state, fills | Raw transactions require venue-aware parsing; upgrades require revalidation |
 | Helius | Low-latency RPC/stream transport, parsed-event acceleration, history/funding inputs | Infrastructure and parsing do not create edge; paid features depend on plan |
 | Birdeye | Token/pair volume, buy/sell flow, unique-wallet windows, holders, distribution | Wallet vs token-account mode and token vs pair scope must be explicit |
 | GMGN | Supplemental holder, smart-wallet, sniper, creator, rug and bundler labels | `bundler_rate` keeps an unspecified provider denominator; `bundler_trader_amount_rate` is trading-volume share; throughput/field stability require defensive clients |

@@ -1,6 +1,7 @@
 import { encodeBase58 } from "./base58.mjs";
 import {
   NATIVE_SOL_MINT,
+  BONDING_CURVE_DISCRIMINATOR,
   PUMP_ACCOUNT_LAYOUT_VERSION,
   PUMP_PROGRAM_ID,
   SYSTEM_PROGRAM_ID,
@@ -62,6 +63,13 @@ export function decodeBondingCurveAccount(input) {
   if (bytes.length < MIN_COMPLETE_LENGTH) {
     throw new TypeError("bonding-curve account is shorter than the complete flag");
   }
+  if (
+    BONDING_CURVE_DISCRIMINATOR.some(
+      (expected, index) => bytes[index] !== expected,
+    )
+  ) {
+    throw new TypeError("bonding-curve account discriminator is invalid");
+  }
 
   const complete = bytes[48] === 1;
   if (bytes[48] > 1) {
@@ -90,7 +98,7 @@ export function decodeBondingCurveAccount(input) {
   });
 }
 
-export function curveProgressRatio({ realTokenReserves, tokenTotalSupply } = {}) {
+export function reserveDepletionRatio({ realTokenReserves, tokenTotalSupply } = {}) {
   if (
     realTokenReserves === undefined ||
     realTokenReserves === null ||

@@ -152,6 +152,34 @@ test("verifies GMGN reading without placing the key in command arguments", async
   assert.equal(invocation.options.env.GMGN_API_KEY, TEST_KEY);
 });
 
+test("passes only allowlisted environment values to the GMGN child process", async () => {
+  let invocation;
+  await checkGmgnReadAccess(TEST_KEY, {
+    environment: {
+      PATH: "/usr/local/bin:/usr/bin",
+      LANG: "en_US.UTF-8",
+      HELIUS_API_KEY: "must-not-reach-gmgn",
+      JUPITER_API_KEY: "must-not-reach-gmgn",
+      TELEGRAM_BOT_TOKEN: "must-not-reach-gmgn",
+      DATABASE_URL: "must-not-reach-gmgn",
+      NODE_OPTIONS: "--require=must-not-reach-gmgn",
+    },
+    execFileImpl: async (file, args, options) => {
+      invocation = { file, args, options };
+      return {
+        stdout: JSON.stringify({ code: 0, data: { rank: [] } }),
+        stderr: "",
+      };
+    },
+  });
+
+  assert.deepEqual(invocation.options.env, {
+    GMGN_API_KEY: TEST_KEY,
+    PATH: "/usr/local/bin:/usr/bin",
+    LANG: "en_US.UTF-8",
+  });
+});
+
 test("does not echo a GMGN API key when verification fails", async () => {
   await assert.rejects(
     checkGmgnReadAccess(TEST_KEY, {

@@ -5,10 +5,11 @@ import {
 } from "../pump/program-ids.mjs";
 
 const STREAM_VERSION = "helius-stream-events.v1";
+const LOGS_SUBSCRIBE_REQUEST_ID = 1;
 
-const CREATE_LOG = /Instruction:\s*(CreateEvent|CreateV2|Create|InitializeMint2|InitializeMint)/i;
-const MIGRATE_LOG = /Instruction:\s*(MigrateV2|Migrate)/i;
-const SWAP_LOG = /Instruction:\s*(Buy|Sell|Swap)/i;
+const INSTRUCTION_LOG = /^Program log: Instruction:\s*([A-Za-z0-9_]+)\s*$/;
+const PROGRAM_INVOKE_LOG = /^Program ([1-9A-HJ-NP-Za-km-z]+) invoke \[(\d+)\]$/;
+const PROGRAM_RETURN_LOG = /^Program ([1-9A-HJ-NP-Za-km-z]+) (?:success|failed:)/;
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
@@ -40,12 +41,47 @@ export function verifyWebhookAuth(provided, expected) {
   return true;
 }
 
+function classifyPumpLogDetails(logs = []) {
+  const lines = Array.isArray(logs) ? logs : [String(logs ?? "")];
+  const stack = [];
+  const names = [];
+  for (const line of lines) {
+    const invoked = String(line).match(PROGRAM_INVOKE_LOG);
+    if (invoked) {
+      const depth = Number(invoked[2]);
+      stack.length = Math.max(0, depth - 1);
+      stack.push(invoked[1]);
+      continue;
+    }
+    const returned = String(line).match(PROGRAM_RETURN_LOG);
+    if (returned) {
+      if (stack.at(-1) === returned[1]) stack.pop();
+      continue;
+    }
+    const instruction = String(line).match(INSTRUCTION_LOG);
+    if (instruction && stack.at(-1) === PUMP_PROGRAM_ID) {
+      names.push(instruction[1]);
+    }
+  }
+
+  const hasCreate = names.some((name) => name === "Create" || name === "CreateV2");
+  const hasMigrate = names.some((name) => name === "Migrate" || name === "MigrateV2");
+  if (hasCreate && hasMigrate) {
+    return Object.freeze({
+      eventType: "lifecycle",
+      classificationError: null,
+    });
+  }
+  if (hasMigrate) return Object.freeze({ eventType: "migrate", classificationError: null });
+  if (hasCreate) return Object.freeze({ eventType: "create", classificationError: null });
+  if (names.some((name) => ["Buy", "Sell", "Swap"].includes(name))) {
+    return Object.freeze({ eventType: "swap", classificationError: null });
+  }
+  return Object.freeze({ eventType: "unknown", classificationError: null });
+}
+
 export function classifyPumpLogs(logs = []) {
-  const text = Array.isArray(logs) ? logs.join("\n") : String(logs ?? "");
-  if (CREATE_LOG.test(text)) return "create";
-  if (MIGRATE_LOG.test(text)) return "migrate";
-  if (SWAP_LOG.test(text)) return "swap";
-  return "unknown";
+  return classifyPumpLogDetails(logs).eventType;
 }
 
 export function extractCandidateMints(payload) {
@@ -58,21 +94,29 @@ export function extractCandidateMints(payload) {
 export function parseLogsNotification(message) {
   const result = message?.params?.result ?? message?.result ?? message;
   const value = result?.value ?? result;
-  const logs = value?.logs ?? value?.logMessages ?? [];
+  const rawLogs = value?.logs ?? value?.logMessages;
+  const logsValid = Array.isArray(rawLogs) &&
+    rawLogs.length > 0 &&
+    rawLogs.every((line) => typeof line === "string" && line.trim() !== "");
+  const logs = logsValid ? rawLogs : [];
+  const classification = classifyPumpLogDetails(logs);
   return Object.freeze({
     streamVersion: STREAM_VERSION,
     source: "helius",
     kind: "logs",
     signature: value?.signature ?? result?.signature ?? null,
     slot: result?.context?.slot ?? result?.slot ?? null,
+    subscriptionId: message?.params?.subscription ?? null,
     err: value?.err ?? null,
     logs: Array.isArray(logs) ? logs : [],
-    eventType: classifyPumpLogs(logs),
+    logsValid,
+    eventType: classification.eventType,
+    classificationError: classification.classificationError,
     candidateMints: extractCandidateMints(value),
     mentionsPump:
       JSON.stringify(value ?? {}).includes(PUMP_PROGRAM_ID) ||
       JSON.stringify(value ?? {}).includes(PUMPSWAP_PROGRAM_ID) ||
-      classifyPumpLogs(logs) !== "unknown",
+      classification.eventType !== "unknown",
     runtimeAuthority: false,
   });
 }
@@ -105,8 +149,9 @@ export const heliusStreamConstants = Object.freeze({
   pumpSwapProgramId: PUMPSWAP_PROGRAM_ID,
   logsSubscribeRequest: Object.freeze({
     jsonrpc: "2.0",
-    id: 1,
+    id: LOGS_SUBSCRIBE_REQUEST_ID,
     method: "logsSubscribe",
     params: [{ mentions: [PUMP_PROGRAM_ID] }, { commitment: "confirmed" }],
   }),
+  logsSubscribeRequestId: LOGS_SUBSCRIBE_REQUEST_ID,
 });

@@ -60,3 +60,4 @@ test("rejects a malformed Jupiter price response", async () => {
     /did not contain a valid SOL price/,
   );
 });
+

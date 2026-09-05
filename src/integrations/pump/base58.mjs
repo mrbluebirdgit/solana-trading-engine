@@ -32,3 +32,4 @@ export function encodeBase58(bytes) {
   }
   return encoded;
 }
+
