@@ -26,6 +26,8 @@
     "observe:opportunity:local": "node --env-file=.env scripts/observe-opportunity.mjs",
     "observe:run": "node scripts/run-observer.mjs",
     "observe:run:local": "node --env-file=.env scripts/run-observer.mjs",
+    "robinhood:watch": "node scripts/run-robinhood-watcher.mjs",
+    "robinhood:watch:local": "node --env-file=.env scripts/run-robinhood-watcher.mjs",
     "verify:jupiter": "node scripts/verify-jupiter-live.mjs",
     "verify:jupiter:local": "node --env-file=.env scripts/verify-jupiter-live.mjs",
     "verify:lunarcrush": "node scripts/verify-lunarcrush-live.mjs",
@@ -42,3 +44,4 @@
     "verify:x:local": "node --env-file=.env scripts/verify-x-live.mjs"
   }
 }
+
