@@ -1,9 +1,12 @@
-import { curveProgressRatio } from "../../integrations/pump/decode-bonding-curve.mjs";
 import {
   PUMP_PROGRAM_ID,
   PUMPSWAP_PROGRAM_ID,
   PUMP_STAGE_RESOLVER_VERSION,
 } from "../../integrations/pump/program-ids.mjs";
+import {
+  bondingCurveAddress,
+  canonicalPumpSwapPoolAddress,
+} from "../../integrations/pump/addresses.mjs";
 import { resolveTokenAuthorityState } from "./token-authority-state.mjs";
 import { VENUE_STAGES } from "./traffic-snapshot.mjs";
 
@@ -23,28 +26,149 @@ function optionalBoolean(value, field) {
 }
 
 function accountExists(account) {
-  if (!account || account.exists === false) return false;
-  if (account.exists === true) return true;
-  return Boolean(account.address);
+  return Boolean(account && account.exists === true);
 }
 
-function isCanonicalPumpSwapPool(pool) {
-  if (!accountExists(pool)) return false;
-  const owner = typeof pool.ownerProgramId === "string" ? pool.ownerProgramId : "";
-  if (owner && owner !== PUMPSWAP_PROGRAM_ID) return false;
-  if (pool.canonical === false) return false;
-  return pool.canonical === true || owner === PUMPSWAP_PROGRAM_ID;
+function assessBondingCurve(curve, mint) {
+  if (!curve || curve.exists === false) {
+    return Object.freeze({ present: false, complete: null, abstentionReason: null });
+  }
+  if (curve.exists !== true) {
+    return Object.freeze({
+      present: false,
+      complete: null,
+      abstentionReason: "bonding_curve_existence_unconfirmed",
+    });
+  }
+  if (curve.ownerProgramId !== PUMP_PROGRAM_ID) {
+    return Object.freeze({
+      present: false,
+      complete: null,
+      abstentionReason: "bonding_curve_owner_mismatch",
+    });
+  }
+  if (typeof curve.address !== "string" || curve.address.trim() === "") {
+    return Object.freeze({
+      present: false,
+      complete: null,
+      abstentionReason: "bonding_curve_address_missing",
+    });
+  }
+
+  let expectedCurve;
+  try {
+    expectedCurve = bondingCurveAddress(mint);
+  } catch {
+    return Object.freeze({
+      present: false,
+      complete: null,
+      abstentionReason: "bonding_curve_relation_unverifiable",
+    });
+  }
+  if (curve.address !== expectedCurve.address) {
+    return Object.freeze({
+      present: false,
+      complete: null,
+      abstentionReason: "bonding_curve_address_mismatch",
+    });
+  }
+
+  const complete = optionalBoolean(curve.complete, "bondingCurve.complete");
+  const hasDecodedFields =
+    complete !== null &&
+    Number.isFinite(curve.realTokenReserves) &&
+    curve.realTokenReserves >= 0 &&
+    Number.isFinite(curve.tokenTotalSupply) &&
+    curve.tokenTotalSupply > 0 &&
+    typeof curve.quoteMint === "string" &&
+    curve.quoteMint.trim() !== "";
+  if (!hasDecodedFields) {
+    return Object.freeze({
+      present: false,
+      complete: null,
+      abstentionReason: "bonding_curve_data_unverified",
+    });
+  }
+
+  return Object.freeze({ present: true, complete, abstentionReason: null });
+}
+
+function assessCanonicalPumpSwapPool(pool, { mint, quoteMint }) {
+  if (!pool || pool.exists === false) {
+    return Object.freeze({ present: false, abstentionReason: null });
+  }
+  if (pool.exists !== true) {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_existence_unconfirmed",
+    });
+  }
+  if (typeof pool.address !== "string" || pool.address.trim() === "") {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_address_missing",
+    });
+  }
+  if (pool.ownerProgramId !== PUMPSWAP_PROGRAM_ID) {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_owner_mismatch",
+    });
+  }
+  if (pool.dataValid !== true) {
+    return Object.freeze({
+      present: false,
+      abstentionReason:
+        typeof pool.validationError === "string" && pool.validationError
+          ? pool.validationError
+          : "canonical_pool_data_unverified",
+    });
+  }
+  if (pool.baseMint !== mint) {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_base_mint_mismatch",
+    });
+  }
+  if (typeof quoteMint !== "string" || quoteMint.trim() === "") {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_quote_mint_unavailable",
+    });
+  }
+  if (pool.quoteMint !== quoteMint) {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_quote_mint_mismatch",
+    });
+  }
+
+  let expectedPool;
+  try {
+    expectedPool = canonicalPumpSwapPoolAddress(mint, quoteMint);
+  } catch {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_relation_unverifiable",
+    });
+  }
+  if (pool.address !== expectedPool.address) {
+    return Object.freeze({
+      present: false,
+      abstentionReason: "canonical_pool_address_mismatch",
+    });
+  }
+
+  return Object.freeze({ present: true, abstentionReason: null });
 }
 
 function classifyOtherPools(pools = []) {
   if (!Array.isArray(pools)) {
     throw new TypeError("otherPools must be an array");
   }
-  return pools.filter((pool) => {
-    if (!accountExists(pool)) return false;
-    if (isCanonicalPumpSwapPool(pool)) return false;
-    return true;
-  });
+  // No non-PumpSwap venue decoder is allowlisted in v1. Caller-provided
+  // owner/dataValid flags are not canonical evidence, so fail closed.
+  return [];
 }
 
 function verifyInitialMigrationLp(evidence, canonicalPoolPresent) {
@@ -97,26 +221,16 @@ export function resolvePumpVenueStage(input = {}) {
   const mint = requiredText(input.mint, "mint");
   const bondingCurve = input.bondingCurve ?? null;
   const canonicalPool = input.canonicalPool ?? null;
-  const otherPools = classifyOtherPools(input.otherPools ?? []);
+  const suppliedOtherPools = input.otherPools ?? [];
+  const otherPoolEvidenceSupplied = Array.isArray(suppliedOtherPools) &&
+    suppliedOtherPools.some(accountExists);
+  const otherPools = classifyOtherPools(suppliedOtherPools);
 
-  if (input.marketCapUsd !== undefined && input.classifyFromMarketCap === true) {
-    throw new TypeError("market cap cannot classify Pump venue stage");
-  }
-
-  const curveOwner =
-    bondingCurve && typeof bondingCurve.ownerProgramId === "string"
-      ? bondingCurve.ownerProgramId
-      : null;
-  const curvePresent = accountExists(bondingCurve);
-  const complete = curvePresent
-    ? optionalBoolean(bondingCurve.complete, "bondingCurve.complete")
-    : null;
-
-  if (curvePresent && curveOwner && curveOwner !== PUMP_PROGRAM_ID) {
+  if (typeof input.collectorAbstentionReason === "string" && input.collectorAbstentionReason) {
     return finalize({
       mint,
       venueStage: "unknown",
-      abstentionReason: "bonding_curve_owner_mismatch",
+      abstentionReason: input.collectorAbstentionReason,
       bondingCurve,
       canonicalPool,
       otherPools,
@@ -124,17 +238,43 @@ export function resolvePumpVenueStage(input = {}) {
     });
   }
 
-  const canonicalPresent = isCanonicalPumpSwapPool(canonicalPool);
-  if (
-    accountExists(canonicalPool) &&
-    canonicalPool.ownerProgramId &&
-    canonicalPool.ownerProgramId !== PUMPSWAP_PROGRAM_ID &&
-    canonicalPool.canonical === true
-  ) {
+  if (input.marketCapUsd !== undefined && input.classifyFromMarketCap === true) {
+    throw new TypeError("market cap cannot classify Pump venue stage");
+  }
+
+  const curveAssessment = assessBondingCurve(bondingCurve, mint);
+  const curvePresent = curveAssessment.present;
+  const complete = curveAssessment.complete;
+  if (curveAssessment.abstentionReason) {
     return finalize({
       mint,
       venueStage: "unknown",
-      abstentionReason: "canonical_pool_owner_mismatch",
+      abstentionReason: curveAssessment.abstentionReason,
+      bondingCurve,
+      canonicalPool,
+      otherPools,
+      input,
+    });
+  }
+
+  const expectedQuoteMint =
+    bondingCurve && typeof bondingCurve.quoteMint === "string"
+      ? bondingCurve.quoteMint
+      : typeof input.quoteMint === "string"
+        ? input.quoteMint
+        : canonicalPool && typeof canonicalPool.quoteMint === "string"
+          ? canonicalPool.quoteMint
+          : null;
+  const canonicalAssessment = assessCanonicalPumpSwapPool(canonicalPool, {
+    mint,
+    quoteMint: expectedQuoteMint,
+  });
+  const canonicalPresent = canonicalAssessment.present;
+  if (canonicalAssessment.abstentionReason) {
+    return finalize({
+      mint,
+      venueStage: "unknown",
+      abstentionReason: canonicalAssessment.abstentionReason,
       bondingCurve,
       canonicalPool,
       otherPools,
@@ -183,6 +323,8 @@ export function resolvePumpVenueStage(input = {}) {
       venueStage: "unknown",
       abstentionReason: curvePresent
         ? "bonding_curve_complete_unreadable"
+        : otherPoolEvidenceSupplied
+          ? "other_amm_decoder_unavailable"
         : "bonding_curve_absent",
       bondingCurve,
       canonicalPool,
@@ -265,7 +407,11 @@ function finalize({
     programId: PUMP_PROGRAM_ID,
     quoteMint,
     curveComplete: bondingCurve ? bondingCurve.complete ?? null : null,
-    curveProgressRatio: curveProgressRatio(bondingCurve ?? {}),
+    // Graduation progress requires versioned global/configuration inputs that the
+    // v1 live collector does not yet capture. Reserve depletion is not a safe
+    // substitute, so this field intentionally stays unavailable.
+    curveProgressRatio: null,
+    curveProgressUnavailableReason: "versioned_graduation_inputs_not_collected",
     canonicalPoolAddress: accountExists(canonicalPool)
       ? canonicalPool.address ?? null
       : null,

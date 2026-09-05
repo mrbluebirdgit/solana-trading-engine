@@ -2,6 +2,56 @@ import { createRouteQuote } from "../../core/execution/route-quote.mjs";
 
 const DEFAULT_ORDER_ENDPOINT = "https://api.jup.ag/swap/v2/order";
 
+export class JupiterQuoteError extends Error {
+  constructor(message, { code, scope = "provider", retryable = false } = {}) {
+    super(message);
+    this.name = "JupiterQuoteError";
+    this.code = code ?? "unknown";
+    this.scope = scope;
+    this.retryable = retryable;
+  }
+}
+
+const CANDIDATE_ROUTE_CODES = new Set([
+  "NO_ROUTES_FOUND",
+  "COULD_NOT_FIND_ANY_ROUTE",
+  "TOKEN_NOT_TRADABLE",
+]);
+
+function structuredErrorCode(payload) {
+  for (const value of [payload?.errorCode, payload?.code]) {
+    if (typeof value === "string" && CANDIDATE_ROUTE_CODES.has(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function httpQuoteError(status, payload) {
+  const routeCode = structuredErrorCode(payload);
+  if (routeCode) {
+    return new JupiterQuoteError("Jupiter has no route for the requested token and size", {
+      code: "route_unavailable",
+      scope: "candidate",
+    });
+  }
+  if (status === 401 || status === 403) {
+    return new JupiterQuoteError("Jupiter rejected the API key", {
+      code: "authentication_failed",
+    });
+  }
+  if (status === 429) {
+    return new JupiterQuoteError("Jupiter quote rate limit reached", {
+      code: "rate_limited",
+      retryable: true,
+    });
+  }
+  return new JupiterQuoteError(`Jupiter quote request failed with HTTP ${status}`, {
+    code: status >= 500 ? "provider_unavailable" : "http_error",
+    retryable: status >= 500,
+  });
+}
+
 function normalizeRoute(routePlan) {
   if (!Array.isArray(routePlan)) {
     return [];
@@ -59,6 +109,7 @@ export async function requestJupiterQuote(
     endpoint = DEFAULT_ORDER_ENDPOINT,
     timeoutMs = 10_000,
     quotedAt = new Date(),
+    signal: externalSignal,
   } = {},
 ) {
   const key = apiKey?.trim() ?? "";
@@ -66,11 +117,26 @@ export async function requestJupiterQuote(
   if (!key) {
     throw new Error("Jupiter API key is missing");
   }
+  if (typeof inputMint !== "string" || inputMint.trim() === "") {
+    throw new TypeError("Jupiter inputMint is required");
+  }
+  if (typeof outputMint !== "string" || outputMint.trim() === "") {
+    throw new TypeError("Jupiter outputMint is required");
+  }
+  if (!/^\d+$/.test(String(amountAtomic)) || String(amountAtomic) === "0") {
+    throw new TypeError("Jupiter amountAtomic must be a positive integer string");
+  }
+
+  const expected = Object.freeze({
+    inputMint: inputMint.trim(),
+    outputMint: outputMint.trim(),
+    amountAtomic: String(amountAtomic),
+  });
 
   const url = new URL(endpoint);
-  url.searchParams.set("inputMint", inputMint);
-  url.searchParams.set("outputMint", outputMint);
-  url.searchParams.set("amount", amountAtomic);
+  url.searchParams.set("inputMint", expected.inputMint);
+  url.searchParams.set("outputMint", expected.outputMint);
+  url.searchParams.set("amount", expected.amountAtomic);
 
   let response;
 
@@ -80,17 +146,58 @@ export async function requestJupiterQuote(
         accept: "application/json",
         "x-api-key": key,
       },
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: externalSignal
+        ? AbortSignal.any([AbortSignal.timeout(timeoutMs), externalSignal])
+        : AbortSignal.timeout(timeoutMs),
     });
   } catch {
-    throw new Error("Jupiter quote request could not be completed");
+    if (externalSignal?.aborted) {
+      const error = new Error("Jupiter quote request was aborted");
+      error.name = "AbortError";
+      throw error;
+    }
+    throw new JupiterQuoteError("Jupiter quote request could not be completed", {
+      code: "transport_failed",
+      retryable: true,
+    });
   }
 
   if (!response.ok) {
-    throw new Error(`Jupiter quote request failed with HTTP ${response.status}`);
+    let errorPayload = null;
+    try {
+      errorPayload = await response.json();
+    } catch {
+      // HTTP status remains a provider/integration failure without an exact,
+      // allowlisted machine-readable candidate error code.
+    }
+    throw httpQuoteError(response.status, errorPayload);
   }
 
-  const payload = await response.json();
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new JupiterQuoteError("Jupiter quote response was not valid JSON", {
+      code: "invalid_response",
+    });
+  }
+  const responseRouteError = structuredErrorCode(payload);
+  if (responseRouteError) {
+    throw new JupiterQuoteError("Jupiter has no route for the requested token and size", {
+      code: "route_unavailable",
+      scope: "candidate",
+    });
+  }
+  if (
+    payload?.inputMint !== expected.inputMint ||
+    payload?.outputMint !== expected.outputMint ||
+    payload?.inAmount !== expected.amountAtomic
+  ) {
+    throw new JupiterQuoteError(
+      "Jupiter quote response did not match the requested route",
+      { code: "invalid_response" },
+    );
+  }
   return normalizeJupiterQuote(payload, quotedAt);
 }
 

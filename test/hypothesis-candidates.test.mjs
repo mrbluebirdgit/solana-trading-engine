@@ -185,3 +185,4 @@ test("requires absent catalog features to remain explicitly unimplemented", asyn
     /must have a null featureRef/,
   );
 });
+

@@ -17,17 +17,17 @@ An evaluation request contains a canonical mint, observation cutoff, intended qu
 4. Build and simulate the candidate entry and supported exit path using allowlisted instructions.
 5. Compute manipulation-risk features and calibrated `p_adverse` with uncertainty.
 6. Compute entity/wallet features from prior closed activity and calibrated quality with uncertainty.
-7. Build a point-in-time `TrafficSnapshot`, compute organic-flow/context features, and estimate the follower `net_return_distribution`.
+7. Build a point-in-time `TrafficSnapshot`, compute organic-flow/context features, and estimate the engine's `net_return_distribution`, including imitation delay only when wallet evidence nominated the candidate.
 8. Request independent executable routes and compute `p_execution` plus all-in cost/shortfall distribution.
 9. Apply portfolio, concentration, notional, fee/tip, drawdown, duplication and kill-switch gates.
 10. Emit one decision with complete reasons: `REJECT`, `ALERT_ONLY`, or `PAPER_ELIGIBLE`.
-11. Paper-submit through the same lifecycle and reconcile from confirmed chain metadata.
+11. Advance an explicitly simulated paper lifecycle and record modeled fills and costs without signing or submitting a chain transaction.
 
-There is intentionally no live decision state in v1. A future policy version may add `LIVE_CANDIDATE` only after the research protocol's promotion gates and a separate explicit owner action.
+There is intentionally no live decision state in v1. The current evaluator emits only `REJECT` and `ALERT_ONLY`; `PAPER_ELIGIBLE` is reserved and remains unreachable until the scorer, paper executor, and required evidence layers exist. A future policy version may add `LIVE_CANDIDATE` only after the research protocol's promotion gates and a separate explicit owner action. An environment-variable or configuration change alone cannot enable live trading.
 
 ## Conservative decision rule
 
-The policy compares the conservative lower bound of follower net utility—not headline token return—with zero and the capital risk budget. Net utility includes entry and exit proceeds, every fee/tip, impact, quote-to-land drift, failures, MEV/tail stress, opportunity cost and model uncertainty.
+The policy compares the conservative lower bound of the engine's net utility—not headline token return or a watched wallet's return—with zero and the capital risk budget. Net utility includes entry and exit proceeds, every fee/tip, impact, quote-to-land drift, failures, MEV/tail stress, opportunity cost and model uncertainty.
 
 The executor abstains unless:
 
@@ -42,16 +42,16 @@ No provider score, social trend, wallet label, graduation prediction or LLM outp
 
 The market-participation feature contract is defined in `config/traffic-feature-catalog.v1.json`. It is live-locked and contains no buy thresholds or score weights. A generic bundle percentage is forbidden: same-slot cohorts, landed exact-Jito cohorts, funding-linked clusters, supply and retained-supply measures must keep their methods and denominators separate. Any union cohort names its component methods and retains a reference to overlap/deduplication evidence. Provider labels remain outside launch cohorts. In particular, GMGN `bundler_rate` retains an unspecified provider-defined denominator, while `bundler_trader_amount_rate` maps only to provider-classified trading-volume share.
 
-For Pump, the canonical stage predicates are `pump_curve_active` when the bonding-curve account is not complete, `migration_pending` when it is complete but the canonical PumpSwap pool is absent, and `pumpswap_amm` when that canonical pool is present. Completion and migration are different facts: current migration is permissionless and idempotent, not an automatic consequence that can be inferred from curve completion. Legacy Raydium withdrawal is disabled for the canonical path. The current canonical migration burns its initial LP issuance, but later liquidity providers can mint and redeem LP tokens; generic current LP burn/supply status is therefore not proof of canonical migration or deployer control.
+For Pump, stage classification starts only after the exact derived curve/pool identities, explicit existence, program owners, account decodes, mint relationships, and coherent curve fields validate. On that validated state, `pump_curve_active` requires `complete = false`, `migration_pending` requires `complete = true` plus an explicitly absent canonical PumpSwap pool, and `pumpswap_amm` requires the fully decoded canonical pool. Completion and migration are different facts: current migration is permissionless and idempotent, not an automatic consequence that can be inferred from curve completion. Legacy Raydium withdrawal is disabled for the canonical path. The current canonical migration burns its initial LP issuance, but later liquidity providers can mint and redeem LP tokens; generic current LP burn/supply status is therefore not proof of canonical migration or deployer control.
 
-Active mint or freeze authority is never treated as unavailable merely because a token remains on a bonding curve. The engine must read authority state directly and preserve `unknown` when it cannot. The schema for these point-in-time distinctions exists, but the Pump/PumpSwap collector and resolver that populate them have not yet been implemented.
+Active mint or freeze authority is never treated as unavailable merely because a token remains on a bonding curve. The engine must read authority state directly and preserve `unknown` when it cannot. The read-only Pump/PumpSwap resolver and Helius point collector populate these stage and authority fields. Durable traffic collection, launch-cohort reconstruction, and canonical migration-LP evidence collection remain unimplemented.
 
 ## Source authority hierarchy
 
 | Field | Authoritative source | Secondary evidence |
 |---|---|---|
 | Program, mint, authority, extension, balances, curve/pool, confirmed fill | Fresh canonical Solana chain state | Helius/Solscan/Birdeye/GMGN parsing may accelerate discovery |
-| Pump instruction/account semantics | Pinned official Pump.fun IDL/program version | Provider labels |
+| Pump instruction/account semantics | Recorded, reviewed official Pump.fun IDL reference; revalidate after upgrades | Provider labels |
 | Executable price/cost | Fresh route response plus exact build/simulation and confirmed deltas | Birdeye/GMGN spot/market data |
 | Wallet PnL | Our point-in-time confirmed-flow ledger | Birdeye/Cielo/GMGN/Solscan estimates |
 | Entity identity | Typed evidence graph with edge-specific confidence | Provider tags and human review |
@@ -70,11 +70,13 @@ Every model output carries:
 - promotion status from `config/evidence-registry.v1.json`;
 - an abstention reason when outside validated scope.
 
-## Intent and reconciliation state machine
+## Paper intent state machine
 
-`created → evaluated → paper_approved → quoted → simulated → signed → submitted → processed_provisional → confirmed → finalized`
+The v1 paper lifecycle is specified but not implemented:
 
-Terminal alternatives are `rejected`, `abandoned`, `simulation_failed`, `expired`, `dropped`, `landed_failed`, `reorged`, `exit_failed` and `reconciled_with_exception`. A submit response or signature never creates a fill. Idempotency keys bind one intent to its allowed transaction/signature set.
+`created → evaluated → paper_approved → paper_quoted → paper_simulated → paper_recorded`
+
+Paper terminal alternatives are `rejected`, `abandoned`, `simulation_failed`, `expired`, `exit_unavailable`, and `paper_record_exception`. Paper mode never creates a signature, submits a transaction, or represents a simulated result as an on-chain fill. Any future live lifecycle—including signing, submission, confirmation, finality, dropped transactions, and reorg handling—requires a later policy version and separate acceptance tests.
 
 ## Kill conditions
 
@@ -93,8 +95,8 @@ The master executor is not complete until tests prove:
 - provider labels cannot be inserted into independently reconstructed launch cohorts;
 - curve completion cannot be represented as completed migration, and generic LP burn status cannot stand in for canonical initial-migration evidence;
 - mint and freeze authority cannot be marked not applicable solely because the venue stage is a bonding curve;
-- quote/simulation/submission never appear as fills;
-- exact fee and balance deltas reconcile paper positions;
+- a quote or simulation never appears as an on-chain fill;
+- simulated paper positions reconcile from timestamped quote, simulation, fee, and market-state inputs; any future live fill reconciles from exact confirmed fee and balance deltas;
 - all unvalidated rules are prevented from live authorization;
 - signer tests reject arbitrary transfers, unknown programs and excess notional;
 - replay can deterministically reproduce a decision from versioned evidence.

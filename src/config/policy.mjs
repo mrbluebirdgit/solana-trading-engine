@@ -27,8 +27,8 @@ export function validatePolicy(policy) {
     throw new TypeError("policy must be an object");
   }
 
-  if (policy.policyVersion !== "1.1.0") {
-    throw new TypeError("policyVersion must be 1.1.0");
+  if (policy.policyVersion !== "1.2.0") {
+    throw new TypeError("policyVersion must be 1.2.0");
   }
 
   if (policy.chain !== "solana") {
@@ -84,11 +84,8 @@ export function validatePolicy(policy) {
     "discovery.volumeAccelerationMinimumMultiple",
     "discovery.holderGrowthMinimumPercent24h",
     "tokenSafety.minimumIndependentDataSources",
-    "tokenSafety.graduated.minimumLiquiditySol",
     "tokenSafety.graduated.maximumTop10HolderPercent",
-    "tokenSafety.graduated.maximumBundlerOrRelatedEarlyHolderPercent",
     "tokenSafety.graduated.maximumMarketCapUsdForEarlyGrowth",
-    "tokenSafety.graduated.minimumIndependentTierAEntitiesForAutoExecution",
     "paperAcceptance.minimumCompletedEligibleSignals",
     "paperAcceptance.minimumCalendarDays"
   ]) {
@@ -118,6 +115,10 @@ export function validatePolicy(policy) {
     "portfolioRisk.noAveragingDown",
     "portfolioRisk.noMartingale",
     "inputGovernance.walletInputs.staticWatchlistsRequireExplicitUserApproval",
+    "tokenSafety.graduated.requireSizeSpecificEntryAndExitDepth",
+    "tokenSafety.graduated.requireTypedCoordinationEvidence",
+    "tokenSafety.graduated.requireDenominatorMatchedCoordinationMetrics",
+    "tokenSafety.graduated.automaticExecutionFromEntityCountForbidden",
     "signerSecurity.dedicatedBalanceCappedWalletOnly",
     "signerSecurity.mainWalletForbidden",
     "signerSecurity.allowlistedProgramsAndTransactionShapesOnly",

@@ -8,7 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "start": "node scripts/run-observer.mjs --notify",
     "test": "node --test",
+    "verify:repository": "node scripts/verify-repository.mjs",
     "verify:birdeye": "node scripts/verify-birdeye-live.mjs",
     "verify:birdeye:local": "node --env-file=.env scripts/verify-birdeye-live.mjs",
     "verify:gmgn": "node scripts/verify-gmgn-live.mjs",
@@ -23,7 +25,15 @@
     "observe:run:local": "node --env-file=.env scripts/run-observer.mjs",
     "verify:jupiter": "node scripts/verify-jupiter-live.mjs",
     "verify:jupiter:local": "node --env-file=.env scripts/verify-jupiter-live.mjs",
+    "verify:lunarcrush": "node scripts/verify-lunarcrush-live.mjs",
+    "verify:lunarcrush:local": "node --env-file=.env scripts/verify-lunarcrush-live.mjs",
+    "verify:newsapi": "node scripts/verify-newsapi-live.mjs",
+    "verify:newsapi:local": "node --env-file=.env scripts/verify-newsapi-live.mjs",
+    "verify:observer": "node scripts/verify-observer-live.mjs",
+    "verify:observer:local": "node --env-file=.env scripts/verify-observer-live.mjs",
     "verify:telegram": "node scripts/verify-integrations.mjs telegram",
-    "verify:telegram:local": "node --env-file=.env scripts/verify-integrations.mjs telegram"
+    "verify:telegram:local": "node --env-file=.env scripts/verify-integrations.mjs telegram",
+    "verify:x": "node scripts/verify-x-live.mjs",
+    "verify:x:local": "node --env-file=.env scripts/verify-x-live.mjs"
   }
 }

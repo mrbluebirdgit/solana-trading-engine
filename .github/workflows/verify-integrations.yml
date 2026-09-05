@@ -1,22 +1,21 @@
 name: Verify integrations
 
 on:
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       provider:
         description: Integration to verify
         required: true
-        default: telegram
+        default: observer
         type: choice
         options:
           - birdeye
-          - gmgn
           - helius
           - jupiter
-          - telegram
+          - lunarcrush
+          - newsapi
+          - observer
+          - x
   issue_comment:
     types:
       - created
@@ -29,46 +28,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify-unit-tests:
-    if: github.event_name == 'pull_request'
-    name: Run unit tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Run unit tests
-        run: npm test
-
   verify-birdeye:
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.provider == 'birdeye') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'birdeye') ||
       (github.event_name == 'issue_comment' &&
        github.actor == github.repository_owner &&
        github.event.comment.body == '/verify birdeye')
     name: Verify Birdeye read-only configuration
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 
@@ -77,59 +53,26 @@ jobs:
 
       - name: Verify Birdeye read-only integration
         run: npm run verify:birdeye
-
-  verify-gmgn:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.provider == 'gmgn') ||
-      (github.event_name == 'issue_comment' &&
-       github.actor == github.repository_owner &&
-       github.event.comment.body == '/verify gmgn')
-    name: Verify GMGN read-only configuration
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Run unit tests
-        run: npm test
-
-      - name: Install pinned GMGN verifier
-        run: npm install --global gmgn-cli@1.6.0
-
-      - name: Verify GMGN read-only intelligence
-        run: npm run verify:gmgn
         env:
-          GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
+          BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
 
   verify-helius:
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.provider == 'helius') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'helius') ||
       (github.event_name == 'issue_comment' &&
        github.actor == github.repository_owner &&
        github.event.comment.body == '/verify helius')
     name: Verify Helius configuration
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 
@@ -138,27 +81,26 @@ jobs:
 
       - name: Verify Helius integration
         run: node scripts/verify-helius-live.mjs
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
 
   verify-jupiter:
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.provider == 'jupiter') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'jupiter') ||
       (github.event_name == 'issue_comment' &&
        github.actor == github.repository_owner &&
        github.event.comment.body == '/verify jupiter')
     name: Verify Jupiter read-only configuration
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 
@@ -167,33 +109,112 @@ jobs:
 
       - name: Verify Jupiter read-only integration
         run: npm run verify:jupiter
+        env:
+          JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
 
-  verify-telegram:
+  verify-observer:
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.provider == 'telegram') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'observer') ||
       (github.event_name == 'issue_comment' &&
        github.actor == github.repository_owner &&
-       github.event.comment.body == '/verify telegram')
-    name: Verify Telegram configuration
+       github.event.comment.body == '/verify observer')
+    name: Verify observer live dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
-      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 
       - name: Run unit tests
         run: npm test
 
-      - name: Verify Telegram integration
-        run: node scripts/verify-integrations.mjs telegram
+      - name: Verify Helius WebSocket, Jupiter route, and Telegram Bot
+        run: npm run verify:observer
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ALLOWED_CHAT_ID: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID }}
+
+  verify-x:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'x') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify x')
+    name: Verify X read-only attention access
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Run unit tests
+        run: npm test
+      - name: Verify X attention source
+        run: npm run verify:x
+        env:
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+
+  verify-lunarcrush:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'lunarcrush') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify lunarcrush')
+    name: Verify LunarCrush read-only attention access
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Run unit tests
+        run: npm test
+      - name: Verify LunarCrush attention source
+        run: npm run verify:lunarcrush
+        env:
+          LUNARCRUSH_API_KEY: ${{ secrets.LUNARCRUSH_API_KEY }}
+
+  verify-newsapi:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'newsapi') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify newsapi')
+    name: Verify NewsAPI read-only attention access
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Run unit tests
+        run: npm test
+      - name: Verify NewsAPI attention source
+        run: npm run verify:newsapi
+        env:
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}

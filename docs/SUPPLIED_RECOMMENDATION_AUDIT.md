@@ -89,12 +89,12 @@ The values are preserved in `config/hypothesis-candidates.v1.json` as 85 unvalid
 - social velocity that may accelerate or decelerate and cannot produce a verdict;
 - tests that reject future provenance, impossible entity counts, conflated Jito evidence and runtime authority.
 
-The Pump/PumpSwap collectors, canonical stage resolver, launch-cohort reconstruction and migration-LP verifier are not implemented yet. The schema can reject malformed or conflated evidence; it cannot make absent collection logic true.
+The canonical Pump/PumpSwap stage resolver, a read-only Helius point collector, a live-locked Pump log observer, and an append-only observation ledger are implemented. Durable traffic collectors, launch-cohort reconstruction, canonical migration-LP evidence collection, transactional paper-state persistence, and an actual always-on deployment are not. The schema can reject malformed or conflated evidence; it cannot make absent collection logic true.
 
 ## Next empirical work
 
-1. Implement current Pump/PumpSwap event parsing and canonical stage resolution.
-2. Add Helius/Birdeye collectors with source timestamps, aligned windows and token/pair scope.
+1. Harden and validate the current Pump/PumpSwap log classification, mint resolution, and canonical stage collection against recorded fixtures and program changes.
+2. Add durable Helius/Birdeye traffic collectors with source timestamps, aligned windows, token/pair scope, gap detection, and replay.
 3. Build the point-in-time wallet/entity ledger and explicit launch cohorts.
 4. Record intended-size Jupiter/direct entry and exit quotes and simulated cost.
 5. Define target labels and observation horizons before fitting anything.

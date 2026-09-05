@@ -1,6 +1,6 @@
 {
   "$schema": "./policy.schema.json",
-  "policyVersion": "1.1.0",
+  "policyVersion": "1.2.0",
   "projectName": "solana-trading-engine",
   "status": "LIVE_LOCKED",
   "chain": "solana",
@@ -102,11 +102,12 @@
       "requireRealCurveStateAndReserves": true
     },
     "graduated": {
-      "minimumLiquiditySol": 30,
       "maximumTop10HolderPercent": 25,
-      "maximumBundlerOrRelatedEarlyHolderPercent": 10,
       "maximumMarketCapUsdForEarlyGrowth": 3000000,
-      "minimumIndependentTierAEntitiesForAutoExecution": 3,
+      "requireSizeSpecificEntryAndExitDepth": true,
+      "requireTypedCoordinationEvidence": true,
+      "requireDenominatorMatchedCoordinationMetrics": true,
+      "automaticExecutionFromEntityCountForbidden": true,
       "requireMintAndFreezeAuthoritiesRevokedWhenApplicable": true,
       "requireVerifiedLpStateWhenApplicable": true
     }

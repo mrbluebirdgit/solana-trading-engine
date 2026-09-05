@@ -1,22 +1,57 @@
 # Solana Trading Engine
 
-A private, modular system for researching Solana activity, scoring trade opportunities, enforcing risk limits, and eventually routing approved live orders through execution providers such as GMGN.
+A private, modular system for researching Solana activity, evaluating trade opportunities, enforcing risk limits, and eventually routing explicitly approved live orders through replaceable execution adapters.
 
 ## Current status
 
-The repository foundation plus Telegram, Helius, GMGN, Jupiter, and Birdeye credential validation are active. Research governance is now explicit: material rules carry a source, evidence class, limitations, and calibration status; research hypotheses must define falsification tests before an experiment can promote them. The current numeric policy is a set of paper-only hypotheses and conservative guardrails—not empirically proven optimums. The `TokenObservation` and `TrafficSnapshot` schemas exist, and the canonical Pump/PumpSwap stage resolver now maps curve completion and canonical-pool presence to venue predicates. Live account collectors still have to supply those facts; the resolver does not infer stage from market cap. No master trading executor exists yet, and live trading remains locked until the signal, risk, execution, validation, and audit layers have been implemented and verified.
+The repository foundation and credential-validation workflows for Helius, Jupiter, Birdeye, and the observation worker are implemented. Telegram Bot delivery is implemented but still needs the operator's Bot token and allowed chat ID; the separate future Telegram user-account ingestion path currently has only a local format validator. GMGN remains an optional, local-only research adapter; automated secret-bearing verification is disabled until it can use a directly reviewed, reproducibly locked integration. Research governance is explicit: material rules carry a source, evidence class, limitations, and calibration status, and research hypotheses must define falsification tests before promotion. The current numeric policy contains paper-only hypotheses and conservative guardrails—not empirically proven optimums.
 
-See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [evidence ledger](docs/EVIDENCE_LEDGER.md), [research and calibration protocol](docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md), [master decision contract](docs/MASTER_DECISION_CONTRACT.md), [market participation feature specification](docs/TRAFFIC_FEATURE_SPECIFICATION.md), [Pump stage resolver](docs/PUMP_STAGE_RESOLVER.md), [audit of supplied recommendations](docs/SUPPLIED_RECOMMENDATION_AUDIT.md), [machine-readable evidence registry](config/evidence-registry.v1.json), [traffic feature catalog](config/traffic-feature-catalog.v1.json), [paper-only hypothesis candidates](config/hypothesis-candidates.v1.json), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
+The read-only canonical Pump/PumpSwap stage resolver, Helius point collector, Pump log observer, Jupiter intended-size quote adapter, and channel-agnostic alert delivery exist. An observation-only narrative radar now adds modular X, LunarCrush, NewsAPI, approved RSS, and GDELT attention collection; shared entity extraction and clustering; Helius/DexScreener mint enrichment; Pump mint matching; research-priority scoring; ledger evidence; and the existing Telegram Bot alert path. The observer remains live-locked: the current evaluator emits only `REJECT` or `ALERT_ONLY`; `PAPER_ELIGIBLE` is reserved and currently unreachable. A calibrated scorer, paper executor, transactional paper-state persistence, reconnect backfill, and an actual always-on deployment do not exist. No master trading executor exists, and live trading remains locked.
+
+See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [narrative radar](docs/NARRATIVE_RADAR.md), [evidence ledger](docs/EVIDENCE_LEDGER.md), [research and calibration protocol](docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md), [master decision contract](docs/MASTER_DECISION_CONTRACT.md), [market participation feature specification](docs/TRAFFIC_FEATURE_SPECIFICATION.md), [Pump stage resolver](docs/PUMP_STAGE_RESOLVER.md), [audit of supplied recommendations](docs/SUPPLIED_RECOMMENDATION_AUDIT.md), [machine-readable evidence registry](config/evidence-registry.v1.json), [narrative source catalog](config/narrative-source-catalog.v1.json), [traffic feature catalog](config/traffic-feature-catalog.v1.json), [paper-only hypothesis candidates](config/hypothesis-candidates.v1.json), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
+
+## Observation beta quickstart
+
+The deployable surface is a read-only Pump observer with bounded processing,
+reconnection, health endpoints, an append-only JSONL discovery log, intended-size
+Jupiter quotes, and optional Telegram Bot alerts. It has no signer and no
+paper or live executor.
+
+Coverage is intentionally narrow in this beta: it admits Pump `create` and
+`migrate` events, not full PumpSwap trade flow; Token-2022 / `create_v2`
+candidates abstain until extension parsing is implemented; and reconnect gaps
+are recorded but not backfilled. Treat alerts as partial observations, not a
+complete or validated market feed.
+
+```bash
+cp .env.example .env
+# Add Helius, Jupiter, and one complete notification channel to .env.
+npm test
+npm run observe:run:local -- --notify
+```
+
+Read [the deployment runbook](docs/DEPLOYMENT.md) before placing the observer on
+an always-on host. `GET /readyz` becomes healthy only after Helius acknowledges
+the subscription and local observation storage remains writable.
+
+### Optional narrative radar
+
+Set `NARRATIVE_RADAR_ENABLED=true` and configure at least one of
+`X_BEARER_TOKEN`, `LUNARCRUSH_API_KEY`, `NEWSAPI_KEY`, or
+`NARRATIVE_RSS_FEEDS`. The radar runs inside the same observer, writes to the
+same ledger, and uses the same optional Telegram Bot channel. It has no default
+keywords or wallet lists, and its uncalibrated priority score can route alerts
+only—it cannot authorize a trade. See the [radar runbook](docs/NARRATIVE_RADAR.md).
 
 ## Research-governed decision system
 
-The future executor must estimate three separate quantities: adverse-event/manipulation risk, net follower return after all costs, and execution/landing probability. It may combine them only through the deterministic policy and only after point-in-time, chronological validation. API access improves data coverage and reliability; it does not create predictive edge by itself.
+The future executor must estimate three separate quantities: adverse-event/manipulation risk, the engine's net return after all costs, and execution/landing probability. When an approved wallet observation nominates a candidate, net return must also include the imitation delay and crowding cost. The executor may combine these quantities only through deterministic policy and only after point-in-time, chronological validation. API access improves data coverage and reliability; it does not create predictive edge by itself.
 
 The repository rejects fixed “magic formulas,” raw leader copying, social virality as authorization, provider labels as ground truth, and any claim that a backtest proves future profit. The evidence-registry validator keeps those shortcuts forbidden while the project is live-locked.
 
 ## Planned pipeline
 
-1. Collect Telegram, on-chain, market, and social signals.
+1. Collect Telegram, on-chain, market, news, search, video, community, and social signals.
 2. Normalize and deduplicate events.
 3. Score opportunities using transparent strategy rules.
 4. Apply position, liquidity, loss, exposure, and kill-switch limits.
@@ -25,16 +60,14 @@ The repository rejects fixed “magic formulas,” raw leader copying, social vi
 
 ## Telegram configuration
 
-The first integration uses Telegram's user API for signal monitoring and eventual GMGN Bot communication.
+The planned Telegram user-API integration will monitor explicitly approved signal sources. It is not a privileged strategy or execution channel, and no GMGN Bot trading path is implemented.
 
 Required secret names:
 
 - `TELEGRAM_API_ID`
 - `TELEGRAM_API_HASH`
 
-Add those values as GitHub Actions repository secrets. Never put real values in `.env.example`, commits, issues, pull requests, screenshots, or chat.
-
-To verify repository-secret formatting, manually run the **Verify integrations** workflow from the Actions tab or post the exact owner-only command `/verify telegram` on a repository issue. The workflow never prints secret values and is not triggered by pull requests.
+Keep those values local until the Telegram user client and ingestion path exist. Do not add them to GitHub merely to run a format check, and never put real values in `.env.example`, commits, issues, pull requests, screenshots, or chat.
 
 On the future Mac, copy `.env.example` to `.env`, enter the same values locally, and run:
 
@@ -42,7 +75,7 @@ On the future Mac, copy `.env.example` to `.env`, enter the same values locally,
 npm run verify:telegram:local
 ```
 
-The first Telegram authorization will be performed interactively on that Mac using Telegram's QR-login flow. A phone number is therefore not required as a GitHub secret. If code-based login is ever used as a fallback, enter the phone number only at the local prompt. The login code, 2FA password, phone number, and generated session must remain local.
+This local command validates formatting only; it does not contact Telegram or prove the credentials work. The first real authorization will be performed interactively on that Mac using Telegram's QR-login flow after the client exists. If code-based login is ever used as a fallback, enter the phone number only at the local prompt. The login code, 2FA password, phone number, and generated session must remain local.
 
 ## Helius configuration
 
@@ -54,6 +87,8 @@ Required secret name:
 
 Add the project key as a GitHub Actions repository secret. The key must never be committed or pasted into an issue, pull request, screenshot, or chat. Use the **Verify integrations** workflow with provider `helius`, or post the exact owner-only command `/verify helius` on a repository issue, to validate its formatting and make a live, read-only mainnet RPC health request.
 
+Run manual **Verify integrations** dispatches from `main`; other selected branches are intentionally skipped. Owner-only issue commands also check out the default branch and never execute pull-request-head code with secrets.
+
 ## GMGN reference integration
 
 GMGN is one external intelligence source, not the engine's strategy, risk authority, or master architecture. Its market and behavioral fields are normalized into our own provider-independent observation format so they can later be corroborated against Helius, Telegram, social, and execution-quote sources.
@@ -62,7 +97,7 @@ Required secret name:
 
 - `GMGN_API_KEY`
 
-The current GMGN key is read-only. Use the **Verify integrations** workflow with provider `gmgn`, or post the exact owner-only command `/verify gmgn` on a repository issue, to make a minimal live read request without displaying the key or token data. Trading permissions, signing keys, and GMGN-controlled execution remain disabled.
+The current GMGN key is read-only. The repository retains a local normalization and health-check scaffold, but GitHub Actions does not install a third-party GMGN CLI or expose `GMGN_API_KEY` to it. Automated live verification stays disabled until the dependency and its transitive supply chain can be reviewed and reproducibly locked. Trading permissions, signing keys, and GMGN-controlled execution remain disabled.
 
 See [intelligence architecture](docs/INTELLIGENCE_ARCHITECTURE.md) for the boundary between external references and our engine.
 
@@ -82,6 +117,6 @@ Use the **Verify integrations** workflow with provider `jupiter`, or post the ex
 - Use a separate Telegram account and a separate, balance-capped trading wallet.
 - GitHub workflows receive API credentials only through encrypted repository secrets.
 - Secret-bearing workflows are manual and use read-only repository permissions.
-- `LIVE_TRADING_ENABLED` defaults to `false` and requires a deliberate local production change.
+- `LIVE_TRADING_ENABLED` defaults to `false`. Changing this environment variable or any configuration file cannot unlock live trading; a future live-capable policy must first pass the documented promotion, security, signer, and owner-approval gates.
 
 See [API inventory](docs/API_INVENTORY.md) and [security policy](SECURITY.md).

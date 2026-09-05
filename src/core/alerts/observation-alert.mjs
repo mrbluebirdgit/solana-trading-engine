@@ -1,7 +1,7 @@
 const STAGE_PRIORITY = Object.freeze({
-  pump_curve_active: "watch",
+  pump_curve_active: "default",
   migration_pending: "high",
-  pumpswap_amm: "normal",
+  pumpswap_amm: "default",
   other_amm: "low",
   unknown: "low",
 });
@@ -17,6 +17,17 @@ function pct(value) {
 
 function retention(value) {
   return Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : "n/a";
+}
+
+function researchLinks(mint) {
+  if (typeof mint !== "string" || mint.trim() === "") return [];
+  const encoded = encodeURIComponent(mint.trim());
+  return [
+    `Pump: https://pump.fun/coin/${encoded}`,
+    `DexScreener: https://dexscreener.com/solana/${encoded}`,
+    `GMGN: https://gmgn.ai/sol/token/${encoded}`,
+    `Solscan: https://solscan.io/token/${encoded}`,
+  ];
 }
 
 export function formatOpportunityAlert({
@@ -42,8 +53,9 @@ export function formatOpportunityAlert({
     `probe: ${intendedBuyLamports ?? "n/a"} lamports`,
     `buy impact: ${pct(buyPriceImpactPercent)}`,
     `sell impact: ${pct(sellPriceImpactPercent)}`,
-    `round-trip keep: ${retention(roundTripRetention)}`,
+    `quote-implied round-trip keep: ${retention(roundTripRetention)}`,
     "authority: observe only",
+    ...researchLinks(mint),
   ];
   if (abstentionReason) {
     lines.splice(2, 0, `abstain: ${abstentionReason}`);

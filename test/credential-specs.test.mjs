@@ -21,6 +21,20 @@ const validJupiterEnvironment = Object.freeze({
   JUPITER_API_KEY: "jupiter_api_key_for_testing",
 });
 
+const validNarrativeEnvironment = Object.freeze({
+  X_BEARER_TOKEN: "x-read-only-bearer-token-for-testing",
+  LUNARCRUSH_API_KEY: "lunarcrush_read_only_key_for_testing",
+  NEWSAPI_KEY: "newsapi_read_only_key_for_testing",
+});
+
+for (const provider of ["x", "lunarcrush", "newsapi"]) {
+  test(`accepts a formatted ${provider} attention credential`, () => {
+    const result = validateProvider(provider, validNarrativeEnvironment);
+    assert.equal(result.ok, true);
+    assert.equal(result.checks[0].ok, true);
+  });
+}
+
 test("accepts a correctly formatted GMGN API key", () => {
   const result = validateProvider("gmgn", validGmgnEnvironment);
 

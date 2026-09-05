@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { formatOpportunityAlert } from "../src/core/alerts/observation-alert.mjs";
-import { deliverNtfyAlert } from "../src/integrations/alerts/deliver.mjs";
+import { deliverTelegramBotAlert } from "../src/integrations/alerts/deliver.mjs";
 import {
   classifyPumpLogs,
   heliusStreamConstants,
@@ -15,10 +15,44 @@ import { NATIVE_SOL_MINT, PUMP_PROGRAM_ID } from "../src/integrations/pump/progr
 
 const MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 const API = "test-key-does-not-leave-errors";
+const pumpLogs = (instruction) => [
+  `Program ${PUMP_PROGRAM_ID} invoke [1]`,
+  `Program log: Instruction: ${instruction}`,
+  `Program ${PUMP_PROGRAM_ID} success`,
+];
 
 test("classifies Pump create and migrate logs", () => {
-  assert.equal(classifyPumpLogs(["Program log: Instruction: Create"]), "create");
-  assert.equal(classifyPumpLogs(["Program log: Instruction: Migrate"]), "migrate");
+  assert.equal(classifyPumpLogs(pumpLogs("Create")), "create");
+  assert.equal(classifyPumpLogs(pumpLogs("Migrate")), "migrate");
+  assert.equal(
+    classifyPumpLogs([
+      ...pumpLogs("Migrate"),
+      "Program log: Instruction: InitializeMint2",
+    ]),
+    "migrate",
+  );
+  assert.equal(classifyPumpLogs(["Program log: Instruction: InitializeMint2"]), "unknown");
+  assert.equal(classifyPumpLogs(pumpLogs("MigrateTokens")), "unknown");
+  assert.equal(
+    classifyPumpLogs(pumpLogs("MigrateBondingCurveCreator")),
+    "unknown",
+  );
+  assert.equal(classifyPumpLogs(pumpLogs("Buyback")), "unknown");
+  assert.equal(classifyPumpLogs(pumpLogs("Seller")), "unknown");
+  assert.equal(
+    classifyPumpLogs([
+      ...pumpLogs("Create"),
+      ...pumpLogs("Migrate"),
+    ]),
+    "lifecycle",
+  );
+  assert.equal(
+    classifyPumpLogs([
+      "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr invoke [1]",
+      "Program log: Instruction: Migrate",
+    ]),
+    "unknown",
+  );
   assert.equal(heliusStreamConstants.logsSubscribeRequest.params[0].mentions[0], PUMP_PROGRAM_ID);
 });
 
@@ -27,7 +61,7 @@ test("parses webhook token mints without treating SOL as a candidate", () => {
     {
       signature: "sig",
       slot: 99,
-      logMessages: ["Program log: Instruction: Create"],
+      logMessages: pumpLogs("Create"),
       tokenTransfers: [{ mint: MINT }, { mint: NATIVE_SOL_MINT }],
     },
   ]);
@@ -43,7 +77,7 @@ test("parses logsSubscribe notifications", () => {
         context: { slot: 12 },
         value: {
           signature: "sig",
-          logs: ["Program log: Instruction: Buy"],
+          logs: pumpLogs("Buy"),
           err: null,
         },
       },
@@ -64,9 +98,11 @@ test("rejects a missing or mismatched webhook token without echoing it", () => {
 
 test("quotes intended size as a SOL buy and implied sell", async () => {
   const seen = [];
+  let clockTick = 0;
   const quotes = await quoteIntendedSize(
     { apiKey: API, mint: MINT, buyLamports: "50000000" },
     {
+      now: () => new Date(1_788_523_200_000 + clockTick++ * 10),
       fetchImpl: async (url) => {
         seen.push(url.searchParams.get("inputMint"));
         const buying = url.searchParams.get("inputMint") === NATIVE_SOL_MINT;
@@ -91,6 +127,12 @@ test("quotes intended size as a SOL buy and implied sell", async () => {
   assert.equal(quotes.sell.input.amountAtomic, "1000");
   assert.equal(quotes.roundTripLamportsRecovered, "48000000");
   assert.equal(quotes.roundTripRetention, 0.96);
+  assert.deepEqual(quotes.quoteSequence, {
+    buyRequestedAt: "2026-09-04T12:00:00.000Z",
+    buyReceivedAt: "2026-09-04T12:00:00.010Z",
+    sellRequestedAt: "2026-09-04T12:00:00.020Z",
+    sellReceivedAt: "2026-09-04T12:00:00.030Z",
+  });
   assert.equal(quotes.runtimeAuthority, false);
 });
 
@@ -105,20 +147,48 @@ test("formats a channel-agnostic phone alert", () => {
   });
   assert.equal(alert.priority, "high");
   assert.match(alert.body, /observe only/);
+  assert.match(alert.body, /pump\.fun\/coin/);
+  assert.match(alert.body, /dexscreener\.com\/solana/);
   assert.equal(alert.runtimeAuthority, false);
 });
 
-test("ntfy delivery never includes the Helius or Jupiter keys", async () => {
-  let headers;
-  await deliverNtfyAlert(
-    { topic: "demo-topic", title: "t", body: "b" },
+test("uses a supported alert priority for every stage", () => {
+  const supported = new Set(["min", "low", "default", "high", "max"]);
+  for (const venueStage of ["pump_curve_active", "migration_pending", "pumpswap_amm", "other_amm", "unknown"]) {
+    assert.equal(supported.has(formatOpportunityAlert({ mint: MINT, venueStage }).priority), true);
+  }
+});
+
+test("Telegram Bot delivery requires an acknowledgement and never puts its token in the body", async () => {
+  const token = "123:secret-token";
+  let request;
+  const result = await deliverTelegramBotAlert(
+    { botToken: token, chatId: "42", body: "observe-only test" },
     {
       fetchImpl: async (url, init) => {
-        headers = init.headers;
-        assert.match(String(url), /ntfy\.sh\/demo-topic/);
-        return { ok: true };
+        request = { url: String(url), init };
+        return {
+          ok: true,
+          json: async () => ({ ok: true, result: { message_id: 7 } }),
+        };
       },
     },
   );
-  assert.equal(JSON.stringify(headers).includes(API), false);
+  assert.equal(result.messageId, 7);
+  assert.equal(request.init.body.includes(token), false);
+  assert.deepEqual(JSON.parse(request.init.body), {
+    chat_id: "42",
+    text: "observe-only test",
+    disable_web_page_preview: true,
+  });
+});
+
+test("Telegram Bot delivery fails when the API does not acknowledge the message", async () => {
+  await assert.rejects(
+    deliverTelegramBotAlert(
+      { botToken: "123:secret", chatId: "42", body: "test" },
+      { fetchImpl: async () => ({ ok: true, json: async () => ({ ok: false }) }) },
+    ),
+    /not acknowledged/,
+  );
 });

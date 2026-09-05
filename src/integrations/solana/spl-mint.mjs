@@ -28,3 +28,4 @@ export function decodeSplMintAccount(data) {
     initialized: bytes[45] === 1,
   });
 }
+

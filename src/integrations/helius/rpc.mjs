@@ -13,7 +13,7 @@ export async function heliusRpcRequest(
   apiKey,
   method,
   params,
-  { fetchImpl = fetch, timeoutMs = 10_000, id = 1 } = {},
+  { fetchImpl = fetch, timeoutMs = 10_000, id = 1, signal: externalSignal } = {},
 ) {
   const endpoint = heliusRpcUrl(apiKey);
   const controller = new AbortController();
@@ -24,7 +24,9 @@ export async function heliusRpcRequest(
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
-      signal: controller.signal,
+      signal: externalSignal
+        ? AbortSignal.any([controller.signal, externalSignal])
+        : controller.signal,
     });
 
     if (!response.ok) {
@@ -38,6 +40,9 @@ export async function heliusRpcRequest(
     return payload.result;
   } catch (error) {
     if (error.name === "AbortError") {
+      if (externalSignal?.aborted) {
+        throw new Error(`Helius RPC ${method} was aborted`);
+      }
       throw new Error(`Helius RPC ${method} timed out`);
     }
     if (

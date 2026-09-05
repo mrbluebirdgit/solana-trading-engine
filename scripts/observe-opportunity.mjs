@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 
 import { observeOpportunity } from "../src/core/intelligence/observe-opportunity.mjs";
-import {
-  deliverNtfyAlert,
-  deliverTelegramBotAlert,
-} from "../src/integrations/alerts/deliver.mjs";
+import { createObservationNotification } from "../src/core/alerts/notification-gate.mjs";
+import { deliverTelegramBotAlert } from "../src/integrations/alerts/deliver.mjs";
 
 const mint = process.argv[2];
 const notify = process.argv.includes("--notify");
@@ -37,6 +35,7 @@ if (!mint) {
           sellPriceImpactPercent: observation.quotes?.sellPriceImpactPercent ?? null,
           roundTripRetention: observation.quotes?.roundTripRetention ?? null,
           quoteError: observation.quoteError,
+          decision: observation.decision,
           alert: observation.alert,
           runtimeAuthority: false,
         },
@@ -46,26 +45,22 @@ if (!mint) {
     );
 
     if (notify) {
-      if (process.env.NTFY_TOPIC?.trim()) {
-        await deliverNtfyAlert({
-          topic: process.env.NTFY_TOPIC,
-          title: observation.alert.title,
-          body: observation.alert.body,
-          priority: observation.alert.priority,
-        });
-        console.error("[ok] ntfy");
-      } else if (
+      const notification = createObservationNotification(observation);
+      const hasTelegram = Boolean(
         process.env.TELEGRAM_BOT_TOKEN?.trim() &&
-        process.env.TELEGRAM_ALLOWED_CHAT_ID?.trim()
-      ) {
+        process.env.TELEGRAM_ALLOWED_CHAT_ID?.trim(),
+      );
+      if (!notification) {
+        console.error(`[skip] notification blocked for decision ${observation.decision?.decision ?? "unknown"}`);
+      } else if (hasTelegram) {
         await deliverTelegramBotAlert({
           botToken: process.env.TELEGRAM_BOT_TOKEN,
           chatId: process.env.TELEGRAM_ALLOWED_CHAT_ID,
-          body: `${observation.alert.title}\n${observation.alert.body}`,
+          body: `${notification.title}\n${notification.body}`,
         });
         console.error("[ok] telegram_bot");
       } else {
-        console.error("[FAIL] --notify needs NTFY_TOPIC or Telegram bot secrets");
+        console.error("[FAIL] --notify needs Telegram bot secrets");
         process.exitCode = 1;
       }
     }

@@ -1,0 +1,229 @@
+{
+  "catalogVersion": "1.0.0",
+  "assessedAt": "2026-09-05",
+  "projectStatus": "LIVE_LOCKED",
+  "runtimeAuthority": false,
+  "purpose": "Record which attention, mint, enrichment, replay, and alert sources are approved for the observation-only narrative radar.",
+  "sources": [
+    {
+      "id": "x_trends_by_woeid",
+      "layer": "attention",
+      "status": "implemented_discovery",
+      "credential": "X_BEARER_TOKEN",
+      "officialDocumentation": "https://docs.x.com/x-api/trends/trends-by-woeid/introduction",
+      "reason": "Official dynamic-topic discovery feed; configured WOEIDs are explicit and bounded.",
+      "limitations": "Availability and cost depend on the X API plan; a trend has no trading authority.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "x_recent_search",
+      "layer": "attention",
+      "status": "implemented_confirmation",
+      "credential": "X_BEARER_TOKEN",
+      "officialDocumentation": "https://docs.x.com/x-api/posts/search-recent-posts",
+      "reason": "Official, targeted confirmation of the highest-ranked discovered terms.",
+      "limitations": "Disabled by default to control spend and query amplification; does not prove organic attention.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "x_filtered_stream",
+      "layer": "attention",
+      "status": "deferred_access",
+      "credential": "X_BEARER_TOKEN",
+      "officialDocumentation": "https://docs.x.com/x-api/posts/filtered-stream/introduction",
+      "reason": "Useful for approved term and account watchlists after stream-rule ownership and cost limits are designed.",
+      "limitations": "Not part of the current polling worker and no implicit KOL or wallet list may be installed.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "lunarcrush_topics",
+      "layer": "attention",
+      "status": "implemented_discovery",
+      "credential": "LUNARCRUSH_API_KEY",
+      "officialDocumentation": "https://lunarcrush.com/en/developers/api",
+      "reason": "Topic-level aggregated social discovery across multiple named upstream networks.",
+      "limitations": "Counts are provider aggregates and collapse to one social evidence channel to prevent fake source diversity.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "newsapi_top_headlines",
+      "layer": "attention",
+      "status": "implemented_discovery",
+      "credential": "NEWSAPI_KEY",
+      "officialDocumentation": "https://newsapi.org/docs/endpoints/top-headlines",
+      "reason": "Broad event and product-news discovery with shared entity extraction.",
+      "limitations": "Publisher coverage, licensing, delay, and plan limits vary; headlines are not popularity measurements.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "approved_rss_atom",
+      "layer": "attention",
+      "status": "implemented_discovery",
+      "credential": null,
+      "officialDocumentation": "https://www.rssboard.org/rss-specification",
+      "reason": "Operator-approved company and newsroom feeds add attributable event discovery without a vendor key.",
+      "limitations": "Only explicit HTTPS feeds are read; local and reserved network targets are rejected.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "gdelt_doc_v2",
+      "layer": "attention",
+      "status": "implemented_confirmation",
+      "credential": null,
+      "officialDocumentation": "https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/",
+      "reason": "Targeted news confirmation for a bounded number of already-discovered entities.",
+      "limitations": "Disabled by default; broad discovery and GDELT article counts are not treated as market demand.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "google_trends_api_alpha",
+      "layer": "attention",
+      "status": "deferred_access",
+      "credential": null,
+      "officialDocumentation": "https://developers.google.com/search/apis/trends",
+      "reason": "The official API is an access-limited alpha and should be integrated only after the project is admitted.",
+      "limitations": "Search interest is usually confirmation rather than a slot-level launch trigger.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "tiktok_research_api",
+      "layer": "attention",
+      "status": "research_only",
+      "credential": null,
+      "officialDocumentation": "https://developers.tiktok.com/doc/research-api-specs-query-videos/",
+      "reason": "Official access can support retrospective meme-format research.",
+      "limitations": "Eligibility is restricted and newly published videos may take up to 48 hours to enter search results, so it is not a live trigger.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "youtube_data_search",
+      "layer": "attention",
+      "status": "deferred_access",
+      "credential": "YOUTUBE_API_KEY",
+      "officialDocumentation": "https://developers.google.com/youtube/v3/docs/search/list",
+      "reason": "May provide targeted video confirmation after query quotas and channel provenance are bounded.",
+      "limitations": "Search requests have material quota cost and popularity can be manipulated.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "reddit_developer_api",
+      "layer": "attention",
+      "status": "deferred_access",
+      "credential": null,
+      "officialDocumentation": "https://developers.reddit.com/docs/capabilities/server/reddit-api",
+      "reason": "Community signals require an approved developer integration and explicit subreddit scope.",
+      "limitations": "The production design does not scrape unauthenticated .json endpoints or assume legacy Data API access.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "santiment_social_volume",
+      "layer": "attention",
+      "status": "research_only",
+      "credential": "SANTIMENT_API_KEY",
+      "officialDocumentation": "https://academy.santiment.net/metrics/social-volume/",
+      "reason": "Arbitrary-term social volume can support replay and corroboration when licensed.",
+      "limitations": "Metric access and intervals are plan-dependent and some data can be supplemented later; not a latency-critical trigger.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "helius_pump_logs",
+      "layer": "mint_birth",
+      "status": "implemented_chain",
+      "credential": "HELIUS_API_KEY",
+      "officialDocumentation": "https://www.helius.dev/docs/api-reference/rpc/websocket/logssubscribe",
+      "reason": "Canonical Pump program log discovery is integrated with bounded queues, retries, and event-time provenance.",
+      "limitations": "Reconnect gaps are recorded but not yet backfilled; logs alone do not identify the mint without transaction resolution.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "helius_das_get_asset",
+      "layer": "mint_metadata",
+      "status": "implemented_enrichment",
+      "credential": "HELIUS_API_KEY",
+      "officialDocumentation": "https://www.helius.dev/docs/api-reference/das/getasset",
+      "reason": "Canonical mint identity and metadata are resolved after a Pump event.",
+      "limitations": "Fresh metadata may lag and absence causes an explicit enrichment failure rather than fabricated fields.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "dexscreener_token_pairs",
+      "layer": "mint_enrichment",
+      "status": "implemented_enrichment",
+      "credential": null,
+      "officialDocumentation": "https://docs.dexscreener.com/api/reference",
+      "reason": "Adds current pair links, attached social links, and liquidity when a matching Solana pair exists.",
+      "limitations": "Optional provider enrichment; pair data cannot establish canonical lifecycle stage or social authenticity.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "telegram_bot_send_message",
+      "layer": "alert",
+      "status": "implemented_delivery",
+      "credential": "TELEGRAM_BOT_TOKEN + TELEGRAM_ALLOWED_CHAT_ID",
+      "officialDocumentation": "https://core.telegram.org/bots/api#sendmessage",
+      "reason": "Uses the existing single-chat, observation-only alert path.",
+      "limitations": "Best-effort delivery with no durable outbox; Telegram commands and execution are not implemented.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "bitquery_pumpfun",
+      "layer": "replay",
+      "status": "deferred_replay",
+      "credential": "BITQUERY_API_KEY",
+      "officialDocumentation": "https://docs.bitquery.io/docs/blockchain/Solana/Pumpfun/Pump-Fun-API/",
+      "reason": "Suitable for historical cohort construction and cross-checking after a point-in-time replay contract is implemented.",
+      "limitations": "Historical convenience data must not leak future state into decisions.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "dune_analytics",
+      "layer": "replay",
+      "status": "deferred_replay",
+      "credential": "DUNE_API_KEY",
+      "officialDocumentation": "https://docs.dune.com/api-reference/overview/introduction",
+      "reason": "Useful for aggregate historical calibration and market-regime research.",
+      "limitations": "Query refresh lag and mutable SQL make it unsuitable as the canonical live trigger.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "pump_frontend_api_v3",
+      "layer": "mint_birth",
+      "status": "rejected_unofficial",
+      "credential": null,
+      "officialDocumentation": null,
+      "reason": "The supplied frontend routes are undocumented application internals, so the engine uses canonical Pump logs plus Helius metadata instead.",
+      "limitations": "Paths, response fields, availability, and access policy can change without a public integration contract.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "unofficial_x_proxies",
+      "layer": "attention",
+      "status": "rejected_unofficial",
+      "credential": null,
+      "officialDocumentation": null,
+      "reason": "GetXAPI and SocialData were not selected for the production path because provenance, terms, and response semantics were not established.",
+      "limitations": "May be reassessed separately; credentials must not be added before that review.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "unofficial_tiktok_scrapers",
+      "layer": "attention",
+      "status": "rejected_unofficial",
+      "credential": null,
+      "officialDocumentation": null,
+      "reason": "TrendsAPI and Apify scraper suggestions were not selected for the production path.",
+      "limitations": "Scraper stability, consent, provenance, and platform terms require a separate review.",
+      "runtimeAuthority": false
+    },
+    {
+      "id": "cryptocurrency_cv",
+      "layer": "attention",
+      "status": "rejected_unofficial",
+      "credential": null,
+      "officialDocumentation": null,
+      "reason": "The supplied host and endpoint semantics were not established from authoritative documentation.",
+      "limitations": "A failed or paywalled request is not evidence of a supported production API.",
+      "runtimeAuthority": false
+    }
+  ]
+}

@@ -5,17 +5,48 @@ import { resolvePumpVenueStage } from "../src/core/intelligence/pump-stage-resol
 import { resolveTokenAuthorityState } from "../src/core/intelligence/token-authority-state.mjs";
 import { encodeBase58 } from "../src/integrations/pump/base58.mjs";
 import {
-  curveProgressRatio,
   decodeBondingCurveAccount,
+  reserveDepletionRatio,
 } from "../src/integrations/pump/decode-bonding-curve.mjs";
 import {
   NATIVE_SOL_MINT,
   PUMP_PROGRAM_ID,
   PUMPSWAP_PROGRAM_ID,
   SYSTEM_PROGRAM_ID,
+  BONDING_CURVE_DISCRIMINATOR,
 } from "../src/integrations/pump/program-ids.mjs";
+import {
+  bondingCurveAddress,
+  canonicalPumpSwapPoolAddress,
+} from "../src/integrations/pump/addresses.mjs";
 
-const MINT = "ExampleMint1111111111111111111111111111111";
+const MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
+function canonicalPoolEvidence(overrides = {}) {
+  const expected = canonicalPumpSwapPoolAddress(MINT, NATIVE_SOL_MINT);
+  return {
+    address: expected.address,
+    ownerProgramId: PUMPSWAP_PROGRAM_ID,
+    exists: true,
+    dataValid: true,
+    baseMint: MINT,
+    quoteMint: NATIVE_SOL_MINT,
+    ...overrides,
+  };
+}
+
+function bondingCurveEvidence(overrides = {}) {
+  return {
+    address: bondingCurveAddress(MINT).address,
+    ownerProgramId: PUMP_PROGRAM_ID,
+    exists: true,
+    complete: false,
+    realTokenReserves: 500,
+    tokenTotalSupply: 1_000,
+    quoteMint: NATIVE_SOL_MINT,
+    ...overrides,
+  };
+}
 
 function writeU64(bytes, offset, value) {
   const view = new DataView(bytes.buffer, offset, 8);
@@ -29,6 +60,7 @@ function bondingCurveBytes({
   quoteMint = SYSTEM_PROGRAM_ID,
 } = {}) {
   const bytes = new Uint8Array(115);
+  bytes.set(BONDING_CURVE_DISCRIMINATOR, 0);
   writeU64(bytes, 8, 1_073_000_000_000_000n);
   writeU64(bytes, 16, 30_000_000_000n);
   writeU64(bytes, 24, realTokenReserves);
@@ -70,15 +102,7 @@ test("rejects a bonding-curve account owned by another program", () => {
 test("emits pump_curve_active when complete is false", () => {
   const resolved = resolvePumpVenueStage({
     mint: MINT,
-    bondingCurve: {
-      address: "CurveAccount",
-      ownerProgramId: PUMP_PROGRAM_ID,
-      exists: true,
-      complete: false,
-      realTokenReserves: 500,
-      tokenTotalSupply: 1000,
-      quoteMint: NATIVE_SOL_MINT,
-    },
+    bondingCurve: bondingCurveEvidence(),
     mintAuthority: "active",
     freezeAuthority: "renounced",
     marketCapUsd: 69_000,
@@ -90,20 +114,17 @@ test("emits pump_curve_active when complete is false", () => {
   assert.equal(resolved.runtimeAuthority, false);
   assert.equal(resolved.mintAuthority, "active");
   assert.equal(resolved.authoritiesApplicableOnCurve, true);
-  assert.equal(resolved.curveProgressRatio, 0.5);
+  assert.equal(resolved.curveProgressRatio, null);
+  assert.equal(
+    resolved.curveProgressUnavailableReason,
+    "versioned_graduation_inputs_not_collected",
+  );
 });
 
 test("does not treat curve completion as completed migration", () => {
   const resolved = resolvePumpVenueStage({
     mint: MINT,
-    bondingCurve: {
-      address: "CurveAccount",
-      ownerProgramId: PUMP_PROGRAM_ID,
-      exists: true,
-      complete: true,
-      realTokenReserves: 0,
-      tokenTotalSupply: 1000,
-    },
+    bondingCurve: bondingCurveEvidence({ complete: true, realTokenReserves: 0 }),
     canonicalPool: { exists: false },
     migrationLp: { genericLpBurned: true },
   });
@@ -117,50 +138,36 @@ test("does not treat curve completion as completed migration", () => {
 test("emits pumpswap_amm only when the canonical pool is present", () => {
   const resolved = resolvePumpVenueStage({
     mint: MINT,
-    bondingCurve: {
-      address: "CurveAccount",
-      ownerProgramId: PUMP_PROGRAM_ID,
-      exists: true,
-      complete: true,
-    },
-    canonicalPool: {
-      address: "CanonicalPumpSwapPool",
-      ownerProgramId: PUMPSWAP_PROGRAM_ID,
-      exists: true,
-      canonical: true,
-    },
+    bondingCurve: bondingCurveEvidence({ complete: true, realTokenReserves: 0 }),
+    canonicalPool: canonicalPoolEvidence(),
     otherPools: [
       {
         address: "RaydiumOrThirdParty",
         ownerProgramId: "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
         exists: true,
+        dataValid: true,
+        baseMint: MINT,
+        quoteMint: NATIVE_SOL_MINT,
       },
     ],
     migrationLp: { initialLpMinted: true, initialLpBurned: true },
   });
 
   assert.equal(resolved.venueStage, "pumpswap_amm");
-  assert.equal(resolved.canonicalPoolAddress, "CanonicalPumpSwapPool");
+  assert.equal(
+    resolved.canonicalPoolAddress,
+    canonicalPumpSwapPoolAddress(MINT, NATIVE_SOL_MINT).address,
+  );
   assert.equal(resolved.migrationLp.verified, true);
   assert.equal(resolved.migrationLp.laterLpMintRedeemPossible, true);
-  assert.equal(resolved.otherAmmRelationships.length, 1);
+  assert.equal(resolved.otherAmmRelationships.length, 0);
 });
 
 test("treats a complete-false plus canonical-pool pair as contradictory", () => {
   const resolved = resolvePumpVenueStage({
     mint: MINT,
-    bondingCurve: {
-      address: "CurveAccount",
-      ownerProgramId: PUMP_PROGRAM_ID,
-      exists: true,
-      complete: false,
-    },
-    canonicalPool: {
-      address: "CanonicalPumpSwapPool",
-      ownerProgramId: PUMPSWAP_PROGRAM_ID,
-      exists: true,
-      canonical: true,
-    },
+    bondingCurve: bondingCurveEvidence(),
+    canonicalPool: canonicalPoolEvidence(),
   });
 
   assert.equal(resolved.venueStage, "unknown");
@@ -201,18 +208,8 @@ test("never marks mint or freeze authority as not applicable on a curve", () => 
 test("generic LP-burn badge is not canonical migration proof", () => {
   const resolved = resolvePumpVenueStage({
     mint: MINT,
-    bondingCurve: {
-      address: "CurveAccount",
-      exists: true,
-      complete: true,
-      ownerProgramId: PUMP_PROGRAM_ID,
-    },
-    canonicalPool: {
-      address: "CanonicalPumpSwapPool",
-      ownerProgramId: PUMPSWAP_PROGRAM_ID,
-      exists: true,
-      canonical: true,
-    },
+    bondingCurve: bondingCurveEvidence({ complete: true, realTokenReserves: 0 }),
+    canonicalPool: canonicalPoolEvidence(),
     migrationLp: { genericLpBurned: true },
   });
 
@@ -224,7 +221,119 @@ test("generic LP-burn badge is not canonical migration proof", () => {
   );
 });
 
-test("curve progress stays null when supply is missing", () => {
-  assert.equal(curveProgressRatio({ realTokenReserves: 1 }), null);
-  assert.equal(curveProgressRatio({ realTokenReserves: 250, tokenTotalSupply: 1000 }), 0.75);
+test("reserve depletion is not mislabeled as graduation progress", () => {
+  assert.equal(reserveDepletionRatio({ realTokenReserves: 1 }), null);
+  assert.equal(reserveDepletionRatio({ realTokenReserves: 250, tokenTotalSupply: 1000 }), 0.75);
+});
+
+test("rejects a bonding-curve account with the wrong discriminator", () => {
+  const bytes = bondingCurveBytes();
+  bytes[0] ^= 0xff;
+  assert.throws(
+    () => decodeBondingCurveAccount({ ownerProgramId: PUMP_PROGRAM_ID, data: bytes }),
+    /discriminator is invalid/,
+  );
+});
+
+test("does not classify a canonical pool from an address or self-asserted flag", () => {
+  const evidence = canonicalPoolEvidence();
+  delete evidence.exists;
+  evidence.canonical = true;
+
+  const resolved = resolvePumpVenueStage({
+    mint: MINT,
+    bondingCurve: bondingCurveEvidence({ complete: true, realTokenReserves: 0 }),
+    canonicalPool: evidence,
+  });
+
+  assert.equal(resolved.venueStage, "unknown");
+  assert.equal(
+    resolved.abstentionReason,
+    "canonical_pool_existence_unconfirmed",
+  );
+  assert.equal(resolved.canonicalPoolPresent, false);
+});
+
+test("requires the exact PumpSwap owner and decoded pool evidence", () => {
+  for (const [overrides, reason] of [
+    [{ ownerProgramId: PUMP_PROGRAM_ID }, "canonical_pool_owner_mismatch"],
+    [{ dataValid: undefined }, "canonical_pool_data_unverified"],
+  ]) {
+    const resolved = resolvePumpVenueStage({
+      mint: MINT,
+      bondingCurve: bondingCurveEvidence({ complete: true, realTokenReserves: 0 }),
+      canonicalPool: canonicalPoolEvidence(overrides),
+    });
+
+    assert.equal(resolved.venueStage, "unknown");
+    assert.equal(resolved.abstentionReason, reason);
+    assert.equal(resolved.canonicalPoolPresent, false);
+  }
+});
+
+test("requires decoded mint fields and the exact canonical pool PDA", () => {
+  for (const [overrides, reason] of [
+    [{ baseMint: NATIVE_SOL_MINT }, "canonical_pool_base_mint_mismatch"],
+    [{ quoteMint: MINT }, "canonical_pool_quote_mint_mismatch"],
+    [{ address: PUMP_PROGRAM_ID }, "canonical_pool_address_mismatch"],
+  ]) {
+    const resolved = resolvePumpVenueStage({
+      mint: MINT,
+      bondingCurve: bondingCurveEvidence({ complete: true, realTokenReserves: 0 }),
+      canonicalPool: canonicalPoolEvidence(overrides),
+    });
+
+    assert.equal(resolved.venueStage, "unknown");
+    assert.equal(resolved.abstentionReason, reason);
+    assert.equal(resolved.canonicalPoolPresent, false);
+  }
+});
+
+test("requires canonical curve ownership, PDA relation, and decoded fields", () => {
+  for (const [overrides, reason] of [
+    [{ ownerProgramId: PUMPSWAP_PROGRAM_ID }, "bonding_curve_owner_mismatch"],
+    [{ address: PUMP_PROGRAM_ID }, "bonding_curve_address_mismatch"],
+    [{ realTokenReserves: undefined }, "bonding_curve_data_unverified"],
+  ]) {
+    const resolved = resolvePumpVenueStage({
+      mint: MINT,
+      bondingCurve: bondingCurveEvidence(overrides),
+      canonicalPool: { exists: false },
+    });
+
+    assert.equal(resolved.venueStage, "unknown");
+    assert.equal(resolved.abstentionReason, reason);
+  }
+});
+
+test("does not classify another AMM without an allowlisted decoder", () => {
+  const unresolved = resolvePumpVenueStage({
+    mint: MINT,
+    bondingCurve: { exists: false },
+    canonicalPool: { exists: false },
+    otherPools: [{ address: "UnverifiedPool", exists: true }],
+  });
+  assert.equal(unresolved.venueStage, "unknown");
+
+  const decodedButUnallowlisted = resolvePumpVenueStage({
+    mint: MINT,
+    bondingCurve: { exists: false },
+    canonicalPool: { exists: false },
+    otherPools: [
+      {
+        address: "VerifiedThirdPartyPool",
+        ownerProgramId: "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        exists: true,
+        dataValid: true,
+        baseMint: MINT,
+        quoteMint: NATIVE_SOL_MINT,
+      },
+    ],
+  });
+  assert.equal(decodedButUnallowlisted.venueStage, "unknown");
+  assert.equal(
+    decodedButUnallowlisted.abstentionReason,
+    "other_amm_decoder_unavailable",
+  );
+  assert.equal(decodedButUnallowlisted.otherAmmRelationships.length, 0);
 });

@@ -37,3 +37,4 @@ if (failed) {
 } else {
   console.log("Integration configuration verification passed.");
 }
+

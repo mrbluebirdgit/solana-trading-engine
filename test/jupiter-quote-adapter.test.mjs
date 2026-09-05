@@ -77,3 +77,67 @@ test("requests a quote without wallet or transaction parameters", async () => {
   assert.equal(requestedUrl.searchParams.has("payer"), false);
   assert.equal(quote.providerQuoteId, "quote-request-id");
 });
+
+test("rejects a response that does not match the requested route", async () => {
+  await assert.rejects(
+    requestJupiterQuote(
+      {
+        apiKey: "jupiter_api_key_for_testing",
+        inputMint: SOL_MINT,
+        outputMint: USDC_MINT,
+        amountAtomic: "10000000",
+      },
+      {
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => ({ ...fixture, outputMint: SOL_MINT }),
+        }),
+      },
+    ),
+    /did not match/,
+  );
+});
+
+test("classifies a missing route as a candidate abstention", async () => {
+  await assert.rejects(
+    requestJupiterQuote(
+      {
+        apiKey: "jupiter_api_key_for_testing",
+        inputMint: SOL_MINT,
+        outputMint: USDC_MINT,
+        amountAtomic: "10000000",
+      },
+      {
+        fetchImpl: async () => ({
+          ok: false,
+          status: 400,
+          json: async () => ({ errorCode: "NO_ROUTES_FOUND" }),
+        }),
+      },
+    ),
+    (error) =>
+      error.code === "route_unavailable" &&
+      error.scope === "candidate",
+  );
+});
+
+test("does not hide an endpoint HTTP failure as a candidate no-route", async () => {
+  await assert.rejects(
+    requestJupiterQuote(
+      {
+        apiKey: "jupiter_api_key_for_testing",
+        inputMint: SOL_MINT,
+        outputMint: USDC_MINT,
+        amountAtomic: "10000000",
+      },
+      {
+        fetchImpl: async () => ({
+          ok: false,
+          status: 404,
+          json: async () => ({ message: "not found" }),
+        }),
+      },
+    ),
+    (error) => error.code === "http_error" && error.scope === "provider",
+  );
+});
