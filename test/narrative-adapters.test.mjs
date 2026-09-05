@@ -144,6 +144,24 @@ test("attention requests persist provider Retry-After and stop before exhausted 
   assert.equal(fetched, false);
 });
 
+test("a paid-plan restriction pauses the attention provider for one day", async () => {
+  let backoff;
+  await assert.rejects(
+    readLunarCrushTopics({
+      apiKey: "lunar-secret",
+      now: NOW,
+      budget: {
+        take: async () => ({ ok: true }),
+        backoff: async (options) => { backoff = options; },
+      },
+      fetchImpl: async () => ({ ok: false, status: 402 }),
+    }),
+    /HTTP 402/,
+  );
+  assert.equal(backoff.retryAfterMs, 86_400_000);
+  assert.equal(backoff.maximumMs, 86_400_000);
+});
+
 test("RSS parsing supports RSS and keeps exact publication provenance", () => {
   const samples = parseRssItems(`
     <rss><channel><item><title><![CDATA[Keyboard Cat Returns]]></title>

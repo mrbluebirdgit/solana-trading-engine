@@ -168,8 +168,8 @@ account's purchased plan. LunarCrush and NewsAPI count each actual HTTP request;
 multiple NewsAPI countries therefore spend multiple calls per tick. All four
 provider counters, exponential failure backoff, and `429` `Retry-After` deadlines
 are persisted beside the observation ledger,
-and attention adapters also back off for a day after `401`/`403` plan or key
-rejection. Reserved calls remain unavailable to routine collection so the
+and attention adapters also back off for a day after `401`/`402`/`403` plan or
+key rejection. Reserved calls remain unavailable to routine collection so the
 process fails quiet before consuming the entire configured allowance. The
 outcome tracker auto-enables when either candidate-provider key exists; setting
 it explicitly to `true` is shown above for clarity.

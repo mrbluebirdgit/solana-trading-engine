@@ -96,7 +96,7 @@ export async function requestJson(url, {
         baseMs: 30_000,
         maximumMs: 24 * 60 * 60 * 1_000,
       });
-    } else if (response.status === 401 || response.status === 403) {
+    } else if ([401, 402, 403].includes(response.status)) {
       await applyBackoff(budget, {
         retryAfterMs: 24 * 60 * 60 * 1_000,
         baseMs: 24 * 60 * 60 * 1_000,
