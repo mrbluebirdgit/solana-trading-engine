@@ -238,6 +238,71 @@ test("starts one integrated narrative radar and forwards resolved Pump mints", a
   assert.equal(radarStopped, true);
 });
 
+test("routes narrative-only mints without per-event Jupiter opportunity enrichment", async () => {
+  const records = [];
+  const observedMints = [];
+  let callbacks;
+  let opportunityCalls = 0;
+  const worker = await startObserverWorker({
+    ...healthyProviders,
+    config: {
+      ...config,
+      notify: false,
+      notificationChannel: null,
+      narrativeRadarEnabled: true,
+      genericOpportunityAlertsEnabled: false,
+    },
+    clock: () => new Date("2026-09-04T12:00:00.000Z"),
+    logger: { log: () => {}, error: () => {} },
+    createLedgerImpl: () => ({
+      ready: async () => {},
+      append: async (record) => { records.push(record); },
+      flush: async () => {},
+    }),
+    createNarrativeRadarImpl: () => ({
+      start: async () => {},
+      stop: async () => {},
+      observePumpMint: async (candidate) => { observedMints.push(candidate); },
+      state: () => ({ healthy: true }),
+    }),
+    startHealthServerImpl: async () => ({ close: async () => {} }),
+    runObserverImpl: async (options) => {
+      callbacks = options;
+      options.onStatus({ state: "subscribed" });
+      return { stop: () => {} };
+    },
+    resolveMintsImpl: async () => ({
+      mints: ["mint-metered"],
+      source: "transaction",
+      resolvedEventType: "create",
+    }),
+    observeOpportunityImpl: async () => {
+      opportunityCalls += 1;
+      throw new Error("should not be called");
+    },
+  });
+
+  const submitted = callbacks.onEvent({
+    signature: "narrative-metered",
+    slot: 46,
+    eventType: "create",
+    logs: ["Program log: Instruction: Create"],
+    err: null,
+  });
+  await submitted.promise;
+  await worker.waitForIdle();
+  assert.equal(opportunityCalls, 0);
+  assert.deepEqual(observedMints, [{
+    mint: "mint-metered",
+    eventSlot: 46,
+    venueStage: null,
+    observedAt: "2026-09-04T12:00:00.000Z",
+  }]);
+  assert.equal(records.some((record) => record.recordType === "narrative_mint_routed"), true);
+  assert.equal(records.some((record) => record.recordType === "opportunity_observation"), false);
+  await worker.stop();
+});
+
 test("latches narrative mint health closed when an observed mint cannot be enriched", async () => {
   const records = [];
   let callbacks;

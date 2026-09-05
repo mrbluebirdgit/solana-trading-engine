@@ -32,6 +32,8 @@
     "verify:lunarcrush:local": "node --env-file=.env scripts/verify-lunarcrush-live.mjs",
     "verify:newsapi": "node scripts/verify-newsapi-live.mjs",
     "verify:newsapi:local": "node --env-file=.env scripts/verify-newsapi-live.mjs",
+    "verify:solscan": "node scripts/verify-solscan-live.mjs",
+    "verify:solscan:local": "node --env-file=.env scripts/verify-solscan-live.mjs",
     "verify:observer": "node scripts/verify-observer-live.mjs",
     "verify:observer:local": "node --env-file=.env scripts/verify-observer-live.mjs",
     "verify:telegram": "node scripts/verify-integrations.mjs telegram",

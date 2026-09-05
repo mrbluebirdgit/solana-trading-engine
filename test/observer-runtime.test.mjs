@@ -23,6 +23,11 @@ test("parses a live-locked observe-only runtime", () => {
   assert.equal(result.narrativePollIntervalMs, 1_200_000);
   assert.equal(result.birdeyeDailyRequestLimit, 100);
   assert.equal(result.gmgnDailyRequestLimit, 50);
+  assert.equal(result.solscanDailyRequestLimit, 250);
+  assert.equal(result.lunarCrushPlan, "hobby");
+  assert.equal(result.lunarCrushTopicsEnabled, false);
+  assert.equal(result.newsApiPlan, "developer");
+  assert.equal(result.newsApiDiscoveryEnabled, false);
   assert.equal(result.narrativeOutcomeTrackingEnabled, false);
   assert.equal(result.lunarCrushDailyRequestLimit, 100);
   assert.equal(result.lunarCrushDailyRequestReserve, 10);
@@ -37,6 +42,7 @@ test("enables bounded candidate enrichment and persisted outcome tracking from r
       ...required,
       BIRDEYE_API_KEY: "birdeye-read-only-key",
       GMGN_API_KEY: "gmgn-read-only-key",
+      SOLSCAN_API_KEY: "solscan-read-only-key",
       BIRDEYE_DAILY_REQUEST_LIMIT: "20",
       BIRDEYE_DAILY_REQUEST_RESERVE: "2",
       GMGN_DAILY_REQUEST_LIMIT: "10",
@@ -46,6 +52,7 @@ test("enables bounded candidate enrichment and persisted outcome tracking from r
   });
   assert.equal(parsed.birdeyeApiKey, "birdeye-read-only-key");
   assert.equal(parsed.gmgnApiKey, "gmgn-read-only-key");
+  assert.equal(parsed.solscanApiKey, "solscan-read-only-key");
   assert.equal(parsed.narrativeOutcomeTrackingEnabled, true);
   assert.deepEqual(parsed.narrativeOutcomeCheckpointsMs, [
     60_000,
@@ -83,7 +90,7 @@ test("rejects signing material and unsafe supplemental-provider budgets", () => 
     () => parseObserverRuntime({
       env: { ...required, NARRATIVE_OUTCOME_TRACKING_ENABLED: "true" },
     }),
-    /requires BIRDEYE_API_KEY or GMGN_API_KEY/,
+    /requires BIRDEYE_API_KEY, GMGN_API_KEY, or SOLSCAN_API_KEY/,
   );
   assert.throws(
     () => parseObserverRuntime({
@@ -130,8 +137,38 @@ test("enables narrative discovery only with an explicitly configured source", ()
     () => parseObserverRuntime({
       env: { ...required, NARRATIVE_RADAR_ENABLED: "true" },
     }),
-    /requires X, LunarCrush, NewsAPI, or approved RSS/,
+    /requires X, a social-enabled LunarCrush plan, production-eligible NewsAPI, or approved RSS/,
   );
+});
+
+test("disables plan-ineligible production discovery sources", () => {
+  assert.throws(
+    () => parseObserverRuntime({
+      env: {
+        ...required,
+        NODE_ENV: "production",
+        NARRATIVE_RADAR_ENABLED: "true",
+        LUNARCRUSH_API_KEY: "lunar-key",
+        LUNARCRUSH_PLAN: "hobby",
+        NEWSAPI_KEY: "news-key",
+        NEWSAPI_PLAN: "developer",
+      },
+    }),
+    /requires X, a social-enabled LunarCrush plan, production-eligible NewsAPI, or approved RSS/,
+  );
+  const parsed = parseObserverRuntime({
+    env: {
+      ...required,
+      NODE_ENV: "production",
+      NARRATIVE_RADAR_ENABLED: "true",
+      LUNARCRUSH_API_KEY: "lunar-key",
+      LUNARCRUSH_PLAN: "builder",
+      NEWSAPI_KEY: "news-key",
+      NEWSAPI_PLAN: "business",
+    },
+  });
+  assert.equal(parsed.lunarCrushTopicsEnabled, true);
+  assert.equal(parsed.newsApiDiscoveryEnabled, true);
 });
 
 test("allows generic opportunity alerts to be opted in independently", () => {

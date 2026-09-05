@@ -10,6 +10,7 @@ try {
     telegramChatId: process.env.TELEGRAM_ALLOWED_CHAT_ID,
     birdeyeApiKey: process.env.BIRDEYE_API_KEY,
     gmgnApiKey: process.env.GMGN_API_KEY,
+    solscanApiKey: process.env.SOLSCAN_API_KEY,
   });
   console.log(
     `[OK] observer preflight passed; Helius=${result.heliusSubscription}; supplemental=${result.supplementalProviders.join(",") || "none"}; Telegram message=${result.telegramMessageId ?? "acknowledged"}; runtimeAuthority=false`,

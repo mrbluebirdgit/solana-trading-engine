@@ -249,6 +249,7 @@ export async function startObserverWorker({
     config.newsApiKey,
     config.birdeyeApiKey,
     config.gmgnApiKey,
+    config.solscanApiKey,
   ].filter(Boolean);
   const state = {
     observerState: "starting",
@@ -485,6 +486,54 @@ export async function startObserverWorker({
         resolvedEventTypes.length === 1 ? resolvedEventTypes[0] : event.eventType;
       const key = `${event.signature}:${mint}`;
       if (!deduper.remember(key)) continue;
+
+      // The narrative-only lane needs the resolved mint immediately, but it
+      // does not need a Jupiter round trip for every raw Pump event. Route the
+      // mint directly to the narrative index and reserve paid/metered market
+      // enrichment for matches that already cleared the alert threshold.
+      if (narrativeRadar && config.genericOpportunityAlertsEnabled === false) {
+        const routedAt = timestamp(clock);
+        await append({
+          schemaVersion: 1,
+          recordType: "narrative_mint_routed",
+          observedAt: routedAt,
+          signature: event.signature,
+          eventSlot: event.slot,
+          eventType: resolvedEventType,
+          classifiedEventType: event.eventType,
+          resolvedEventTypes,
+          mint,
+          mintSource: resolvedResult.value.source,
+          triggerIngestedAt: ingestedAt,
+          runtimeAuthority: false,
+        });
+        try {
+          await narrativeRadar.observePumpMint({
+            mint,
+            eventSlot: event.slot,
+            venueStage: null,
+            observedAt: ingestedAt,
+          });
+          state.providerHealthy = true;
+          state.lastSuccessfulEnrichmentAt = routedAt;
+        } catch (error) {
+          state.narrativeMintHealthy = false;
+          state.narrativeFailedMints += 1;
+          state.enrichmentHealthy = false;
+          state.failedEvents += 1;
+          await append({
+            schemaVersion: 1,
+            recordType: "narrative_mint_enrichment_failed",
+            observedAt: timestamp(clock),
+            signature: event.signature,
+            mint,
+            reason: safeError(error, secrets),
+            runtimeAuthority: false,
+          });
+          logger.error(`[narrative] mint enrichment failed: ${safeError(error, secrets)}`);
+        }
+        continue;
+      }
 
       const observationResult = await withRetries(
         (_attempt, attemptSignal) =>

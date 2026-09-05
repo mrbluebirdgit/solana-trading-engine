@@ -33,6 +33,14 @@ function optionalSecret(value) {
   return nonEmpty(value) ? value.trim() : null;
 }
 
+function planName(value, field, fallback, allowed) {
+  const normalized = nonEmpty(value) ? value.trim().toLowerCase() : fallback;
+  if (!allowed.has(normalized)) {
+    throw new TypeError(`${field} must be one of: ${[...allowed].join(", ")}`);
+  }
+  return normalized;
+}
+
 function integerList(value, field, fallback) {
   const source = nonEmpty(value) ? value : fallback;
   const values = String(source).split(",").map((item) => item.trim()).filter(Boolean);
@@ -157,6 +165,26 @@ export function parseObserverRuntime({
   const newsApiKey = optionalSecret(env.NEWSAPI_KEY);
   const birdeyeApiKey = optionalSecret(env.BIRDEYE_API_KEY);
   const gmgnApiKey = optionalSecret(env.GMGN_API_KEY);
+  const solscanApiKey = optionalSecret(env.SOLSCAN_API_KEY);
+  const lunarCrushPlan = planName(
+    env.LUNARCRUSH_PLAN,
+    "LUNARCRUSH_PLAN",
+    "hobby",
+    new Set(["hobby", "individual", "builder", "scale", "enterprise"]),
+  );
+  const newsApiPlan = planName(
+    env.NEWSAPI_PLAN,
+    "NEWSAPI_PLAN",
+    "developer",
+    new Set(["developer", "business", "advanced"]),
+  );
+  const nodeEnvironment = (env.NODE_ENV ?? "development").trim().toLowerCase();
+  const lunarCrushTopicsEnabled = Boolean(
+    lunarCrushApiKey && lunarCrushPlan !== "hobby",
+  );
+  const newsApiDiscoveryEnabled = Boolean(
+    newsApiKey && (nodeEnvironment !== "production" || newsApiPlan !== "developer"),
+  );
   if (nonEmpty(env.GMGN_PRIVATE_KEY)) {
     throw new Error("GMGN_PRIVATE_KEY must not be configured in the observe-only worker");
   }
@@ -177,12 +205,12 @@ export function parseObserverRuntime({
   if (
     narrativeRadarEnabled &&
     !xBearerToken &&
-    !lunarCrushApiKey &&
-    !newsApiKey &&
+    !lunarCrushTopicsEnabled &&
+    !newsApiDiscoveryEnabled &&
     narrativeRssFeeds.length === 0
   ) {
     throw new Error(
-      "NARRATIVE_RADAR_ENABLED requires X, LunarCrush, NewsAPI, or approved RSS feeds",
+      "NARRATIVE_RADAR_ENABLED requires X, a social-enabled LunarCrush plan, production-eligible NewsAPI, or approved RSS feeds",
     );
   }
 
@@ -217,11 +245,26 @@ export function parseObserverRuntime({
     5,
     999_999,
   );
+  const solscanDailyRequestLimit = positiveInteger(
+    env.SOLSCAN_DAILY_REQUEST_LIMIT,
+    "SOLSCAN_DAILY_REQUEST_LIMIT",
+    250,
+    1_000_000,
+  );
+  const solscanDailyRequestReserve = nonNegativeInteger(
+    env.SOLSCAN_DAILY_REQUEST_RESERVE,
+    "SOLSCAN_DAILY_REQUEST_RESERVE",
+    25,
+    999_999,
+  );
   if (birdeyeDailyRequestReserve >= birdeyeDailyRequestLimit) {
     throw new TypeError("BIRDEYE_DAILY_REQUEST_RESERVE must be smaller than its limit");
   }
   if (gmgnDailyRequestReserve >= gmgnDailyRequestLimit) {
     throw new TypeError("GMGN_DAILY_REQUEST_RESERVE must be smaller than its limit");
+  }
+  if (solscanDailyRequestReserve >= solscanDailyRequestLimit) {
+    throw new TypeError("SOLSCAN_DAILY_REQUEST_RESERVE must be smaller than its limit");
   }
   const lunarCrushDailyRequestLimit = positiveInteger(
     env.LUNARCRUSH_DAILY_REQUEST_LIMIT,
@@ -253,7 +296,7 @@ export function parseObserverRuntime({
   if (newsApiDailyRequestReserve >= newsApiDailyRequestLimit) {
     throw new TypeError("NEWSAPI_DAILY_REQUEST_RESERVE must be smaller than its limit");
   }
-  const hasCandidateProviders = Boolean(birdeyeApiKey || gmgnApiKey);
+  const hasCandidateProviders = Boolean(birdeyeApiKey || gmgnApiKey || solscanApiKey);
   const narrativeOutcomeTrackingEnabled = booleanControl(
     env.NARRATIVE_OUTCOME_TRACKING_ENABLED,
     "NARRATIVE_OUTCOME_TRACKING_ENABLED",
@@ -261,7 +304,7 @@ export function parseObserverRuntime({
   );
   if (narrativeOutcomeTrackingEnabled && !hasCandidateProviders) {
     throw new Error(
-      "NARRATIVE_OUTCOME_TRACKING_ENABLED requires BIRDEYE_API_KEY or GMGN_API_KEY",
+      "NARRATIVE_OUTCOME_TRACKING_ENABLED requires BIRDEYE_API_KEY, GMGN_API_KEY, or SOLSCAN_API_KEY",
     );
   }
 
@@ -278,9 +321,14 @@ export function parseObserverRuntime({
     genericOpportunityAlertsEnabled,
     xBearerToken,
     lunarCrushApiKey,
+    lunarCrushPlan,
+    lunarCrushTopicsEnabled,
     newsApiKey,
+    newsApiPlan,
+    newsApiDiscoveryEnabled,
     birdeyeApiKey,
     gmgnApiKey,
+    solscanApiKey,
     candidateProviderTimeoutMs: boundedInteger(
       env.CANDIDATE_PROVIDER_TIMEOUT_MS,
       "CANDIDATE_PROVIDER_TIMEOUT_MS",
@@ -294,6 +342,9 @@ export function parseObserverRuntime({
     gmgnDailyRequestLimit,
     gmgnDailyRequestReserve,
     gmgnBudgetStatePath: path.join(stateDirectory, "gmgn-budget.v1.json"),
+    solscanDailyRequestLimit,
+    solscanDailyRequestReserve,
+    solscanBudgetStatePath: path.join(stateDirectory, "solscan-budget.v1.json"),
     narrativeOutcomeTrackingEnabled,
     narrativeOutcomeNotificationsEnabled: booleanControl(
       env.NARRATIVE_OUTCOME_NOTIFICATIONS_ENABLED,

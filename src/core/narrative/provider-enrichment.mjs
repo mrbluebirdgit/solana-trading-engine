@@ -7,6 +7,12 @@ import {
   readGmgnCandidateEvidence,
   readGmgnPrice,
 } from "../../integrations/gmgn/token-evidence.mjs";
+import {
+  readSolscanCandidateEvidence,
+  readSolscanPrice,
+} from "../../integrations/solscan/token-evidence.mjs";
+
+const PROVIDER_PRECEDENCE = Object.freeze(["birdeye", "gmgn", "solscan"]);
 
 function safeError(error) {
   return error instanceof Error ? error.message.slice(0, 300) : "provider request failed";
@@ -37,7 +43,7 @@ function providerResult(provider, result) {
 }
 
 function firstMetric(results, section, field) {
-  for (const provider of ["birdeye", "gmgn"]) {
+  for (const provider of PROVIDER_PRECEDENCE) {
     const observation = results.find((result) => result.provider === provider && result.ok)
       ?.observation;
     const value = observation?.[section]?.[field];
@@ -47,7 +53,7 @@ function firstMetric(results, section, field) {
 }
 
 function firstBoolean(results, section, field) {
-  for (const provider of ["birdeye", "gmgn"]) {
+  for (const provider of PROVIDER_PRECEDENCE) {
     const observation = results.find((result) => result.provider === provider && result.ok)
       ?.observation;
     const value = observation?.[section]?.[field];
@@ -119,6 +125,8 @@ export function createCandidateProviderEnricher({
   readBirdeyePriceImpl = readBirdeyePrice,
   readGmgnCandidateImpl = readGmgnCandidateEvidence,
   readGmgnPriceImpl = readGmgnPrice,
+  readSolscanCandidateImpl = readSolscanCandidateEvidence,
+  readSolscanPriceImpl = readSolscanPrice,
 } = {}) {
   if (!config) throw new TypeError("provider enrichment config is required");
   const budgets = {};
@@ -138,6 +146,15 @@ export function createCandidateProviderEnricher({
       dailyLimit: config.gmgnDailyRequestLimit,
       reserve: config.gmgnDailyRequestReserve,
       statePath: config.gmgnBudgetStatePath,
+      clock,
+    });
+  }
+  if (config.solscanApiKey) {
+    budgets.solscan = createBudgetImpl({
+      provider: "solscan",
+      dailyLimit: config.solscanDailyRequestLimit,
+      reserve: config.solscanDailyRequestReserve,
+      statePath: config.solscanBudgetStatePath,
       clock,
     });
   }
@@ -189,6 +206,18 @@ export function createCandidateProviderEnricher({
         apiKey: config.gmgnApiKey,
         mint,
         budget: budgets.gmgn,
+        signal,
+        timeoutMs: config.candidateProviderTimeoutMs,
+        now: clock,
+      }));
+    }
+    if (readiness.solscan?.ok) {
+      providers.push("solscan");
+      tasks.push(readSolscanCandidateImpl({
+        apiKey: config.solscanApiKey,
+        mint,
+        budget: budgets.solscan,
+        fetchImpl,
         signal,
         timeoutMs: config.candidateProviderTimeoutMs,
         now: clock,
@@ -250,6 +279,25 @@ export function createCandidateProviderEnricher({
       } catch (error) {
         if (signal?.aborted) throw error;
         attempts.push(`GMGN: ${safeError(error)}`);
+      }
+    }
+    if (readiness.solscan?.ok) {
+      try {
+        const result = await readSolscanPriceImpl({
+          apiKey: config.solscanApiKey,
+          mint,
+          budget: budgets.solscan,
+          fetchImpl,
+          signal,
+          timeoutMs: config.candidateProviderTimeoutMs,
+          now: clock,
+        });
+        state.successfulPriceRequests += 1;
+        state.lastPriceAt = result.observedAt;
+        return result;
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        attempts.push(`Solscan: ${safeError(error)}`);
       }
     }
     const error = new Error(attempts.join("; ") || "no price provider is available");

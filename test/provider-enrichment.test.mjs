@@ -30,6 +30,10 @@ function config() {
     gmgnDailyRequestLimit: 50,
     gmgnDailyRequestReserve: 5,
     gmgnBudgetStatePath: "/tmp/gmgn.json",
+    solscanApiKey: "solscan-key",
+    solscanDailyRequestLimit: 250,
+    solscanDailyRequestReserve: 25,
+    solscanBudgetStatePath: "/tmp/solscan.json",
     candidateProviderTimeoutMs: 6_000,
   };
 }
@@ -71,6 +75,14 @@ test("combines Birdeye market/security and GMGN wallet evidence without averagin
       capabilities: ["wallet_labels"],
       partialErrors: [],
     }),
+    readSolscanCandidateImpl: async () => ({
+      observation: observation("solscan", {
+        market: { priceUsd: 0.0009, marketCapUsd: 99_000 },
+        ownership: { holderCount: 310, top10HolderShare: 0.19 },
+      }),
+      capabilities: ["market", "holders"],
+      partialErrors: [],
+    }),
   });
   await enricher.start();
   const result = await enricher.enrich({ mint: "MintOne" });
@@ -109,5 +121,24 @@ test("falls back to GMGN when Birdeye cannot provide a checkpoint price", async 
   assert.equal(result.provider, "gmgn");
   assert.equal(birdeyeCalls, 1);
   assert.equal(gmgnCalls, 1);
+  await enricher.stop();
+});
+
+test("falls back to Solscan when Birdeye and GMGN cannot provide a checkpoint price", async () => {
+  const enricher = createCandidateProviderEnricher({
+    config: config(),
+    clock: () => NOW,
+    createBudgetImpl: createBudget,
+    readBirdeyePriceImpl: async () => { throw new Error("not listed yet"); },
+    readGmgnPriceImpl: async () => { throw new Error("GMGN unavailable"); },
+    readSolscanPriceImpl: async () => ({
+      provider: "solscan",
+      priceUsd: 0.002,
+      observedAt: NOW.toISOString(),
+    }),
+  });
+  await enricher.start();
+  const result = await enricher.readPrice({ mint: "MintOne" });
+  assert.equal(result.provider, "solscan");
   await enricher.stop();
 });

@@ -44,7 +44,7 @@ function buildAdapters(config, fetchImpl, attentionBudgets) {
       }));
     }
   }
-  if (config.lunarCrushApiKey) {
+  if (config.lunarCrushTopicsEnabled) {
     discovery.push(Object.freeze({
       name: "lunarcrush_topics",
       read: ({ now, signal }) => readLunarCrushTopics({
@@ -56,7 +56,7 @@ function buildAdapters(config, fetchImpl, attentionBudgets) {
       }),
     }));
   }
-  if (config.newsApiKey) {
+  if (config.newsApiDiscoveryEnabled) {
     discovery.push(Object.freeze({
       name: "newsapi_headlines",
       read: ({ now, signal }) => readNewsApiHeadlines({
@@ -120,7 +120,7 @@ export function createNarrativeRadar({
     throw new TypeError("narrative radar append and deliver functions are required");
   }
   const attentionBudgets = {};
-  if (config.lunarCrushApiKey) {
+  if (config.lunarCrushTopicsEnabled) {
     attentionBudgets.lunarcrush = createBudgetImpl({
       provider: "lunarcrush",
       dailyLimit: config.lunarCrushDailyRequestLimit,
@@ -129,7 +129,7 @@ export function createNarrativeRadar({
       clock,
     });
   }
-  if (config.newsApiKey) {
+  if (config.newsApiDiscoveryEnabled) {
     attentionBudgets.newsapi = createBudgetImpl({
       provider: "newsapi",
       dailyLimit: config.newsApiDailyRequestLimit,
@@ -146,7 +146,9 @@ export function createNarrativeRadar({
   let timer = null;
   let stopped = false;
   let running = null;
-  const hasCandidateProviders = Boolean(config.birdeyeApiKey || config.gmgnApiKey);
+  const hasCandidateProviders = Boolean(
+    config.birdeyeApiKey || config.gmgnApiKey || config.solscanApiKey,
+  );
   const providerEnricher = hasCandidateProviders
     ? createProviderEnricherImpl({ config, fetchImpl, clock })
     : null;

@@ -32,7 +32,7 @@ chain clock:
 6. Name, symbol, and description matching joins a new mint to the current
    narrative index. The 15-minute competing-mint count penalizes crowded names.
 7. A candidate that clears the alert floor and pair dedupe may receive bounded,
-   parallel Birdeye and GMGN read-only enrichment. A provider timeout, quota
+   parallel Birdeye, GMGN, and Solscan read-only enrichment. A provider timeout, quota
    exhaustion, or plan restriction is recorded but does not suppress the base
    narrative alert.
 8. The ledger receives the match, provider evidence, delivery latency, and
@@ -54,8 +54,8 @@ until restart. A later social poll cannot erase that coverage gap.
 | Role | Adapter | Credential | Default |
 |---|---|---|---|
 | Broad discovery | X trends by WOEID | `X_BEARER_TOKEN` | Enabled when key exists |
-| Broad discovery | LunarCrush topics | `LUNARCRUSH_API_KEY` | Enabled when key exists |
-| Broad discovery | NewsAPI top headlines | `NEWSAPI_KEY` | Enabled when key exists |
+| Broad discovery | LunarCrush topics | `LUNARCRUSH_API_KEY` | Production only when `LUNARCRUSH_PLAN` is not `hobby` |
+| Broad discovery | NewsAPI top headlines | `NEWSAPI_KEY` | Production only when `NEWSAPI_PLAN` is not `developer` |
 | Broad discovery | Explicit HTTPS RSS/Atom feeds | None | Enabled when URLs exist |
 | Targeted confirmation | X recent search | `X_BEARER_TOKEN` | Off |
 | Targeted confirmation | GDELT DOC API | None | Off |
@@ -63,13 +63,15 @@ until restart. A later social poll cannot erase that coverage gap.
 | Pair enrichment | DexScreener token pairs | None | Best effort |
 | Threshold-triggered evidence | Birdeye token overview and security | `BIRDEYE_API_KEY` | Enabled when key exists |
 | Threshold-triggered evidence | GMGN token intelligence through exact-locked CLI | `GMGN_API_KEY` | Enabled when key exists |
-| Post-alert measurement | Birdeye then GMGN price | Either provider key | Enabled when a key exists |
+| Threshold-triggered evidence | Solscan token metadata and holders | `SOLSCAN_API_KEY` | Enabled when key exists |
+| Post-alert measurement | Birdeye, then GMGN, then Solscan price | Any provider key | Enabled when a key exists |
 | Delivery | Telegram Bot `sendMessage` | Bot token and allowed chat ID | Existing optional path |
 
-Birdeye and GMGN are supplemental. Their values are kept provider-labeled and
+Birdeye, GMGN, and Solscan are supplemental. Their values are kept provider-labeled and
 are not averaged into invented consensus. The alert prefers Birdeye for market
 fields when both are available and keeps GMGN-specific smart-money, KOL, and
-bundler labels explicit. Neither provider changes the narrative score or grants
+bundler labels explicit. Solscan supplies a slower independent metadata,
+authority, and holder cross-check. None changes the narrative score or grants
 trading authority.
 
 The complete assessment—including deferred Google Trends, TikTok, Reddit,
@@ -130,7 +132,9 @@ NARRATIVE_RADAR_ENABLED=true
 GENERIC_OPPORTUNITY_ALERTS_ENABLED=false
 X_BEARER_TOKEN=
 LUNARCRUSH_API_KEY=
+LUNARCRUSH_PLAN=hobby
 NEWSAPI_KEY=
+NEWSAPI_PLAN=developer
 NARRATIVE_RSS_FEEDS=https://example.com/feed.xml
 
 NARRATIVE_X_RECENT_SEARCH_ENABLED=false
@@ -147,31 +151,38 @@ NEWSAPI_DAILY_REQUEST_RESERVE=10
 
 BIRDEYE_API_KEY=
 GMGN_API_KEY=
+SOLSCAN_API_KEY=
 CANDIDATE_PROVIDER_TIMEOUT_MS=6000
 BIRDEYE_DAILY_REQUEST_LIMIT=100
 BIRDEYE_DAILY_REQUEST_RESERVE=10
 GMGN_DAILY_REQUEST_LIMIT=50
 GMGN_DAILY_REQUEST_RESERVE=5
+SOLSCAN_DAILY_REQUEST_LIMIT=250
+SOLSCAN_DAILY_REQUEST_RESERVE=25
 NARRATIVE_OUTCOME_TRACKING_ENABLED=true
 NARRATIVE_OUTCOME_NOTIFICATIONS_ENABLED=true
 NARRATIVE_OUTCOME_CHECKPOINTS_MS=60000,300000,900000,3600000
 ```
 
-At least one of X, LunarCrush, NewsAPI, or an approved RSS feed is required when
-the radar is enabled. The recent-search and GDELT switches add targeted calls for
+At least one production-eligible source—X API, a social-enabled LunarCrush plan,
+a production NewsAPI plan, or an approved RSS feed—is required when the radar is
+enabled. Under the operator's recorded Hobby and Developer plans, LunarCrush
+topics and NewsAPI are deliberately disabled in the production container; their
+stored keys remain available for verification and local development. The
+recent-search and GDELT switches add targeted calls for
 only the top configured number of terms. Review provider costs and quotas before
 enabling them. NewsAPI top-headline discovery requires one to five explicit ISO
 alpha-2 country codes and defaults to `us`.
 
 The provider limits are conservative safety ceilings, not claims about the
 account's purchased plan. LunarCrush and NewsAPI count each actual HTTP request;
-multiple NewsAPI countries therefore spend multiple calls per tick. All four
+multiple NewsAPI countries therefore spend multiple calls per tick. All configured
 provider counters, exponential failure backoff, and `429` `Retry-After` deadlines
 are persisted beside the observation ledger,
 and attention adapters also back off for a day after `401`/`402`/`403` plan or
 key rejection. Reserved calls remain unavailable to routine collection so the
 process fails quiet before consuming the entire configured allowance. The
-outcome tracker auto-enables when either candidate-provider key exists; setting
+outcome tracker auto-enables when any candidate-provider key exists; setting
 it explicitly to `true` is shown above for clarity.
 
 Run without outbound alerts to validate collection and inspect the ledger:
@@ -188,7 +199,7 @@ npm run observe:run:local -- --notify
 ```
 
 Manual read-only credential checks include `npm run verify:birdeye:local`,
-`npm run verify:gmgn:local`, `npm run verify:x:local`,
+`npm run verify:gmgn:local`, `npm run verify:solscan:local`, `npm run verify:x:local`,
 `npm run verify:lunarcrush:local`, and `npm run verify:newsapi:local`. The GitHub
 workflow has equivalent owner-triggered checks. GitHub repository secrets do
 not automatically become deployment-host secrets.
@@ -232,3 +243,5 @@ not automatically become deployment-host secrets.
 - [Birdeye authentication](https://data.birdeye.so/docs/authentication)
 - [Birdeye rate limiting](https://data.birdeye.so/docs/guides/api-access/rate-limiting)
 - [GMGN official skills and CLI](https://github.com/GMGNAI/gmgn-skills)
+- [Solscan token metadata](https://pro-api.solscan.io/pro-api-docs/v2.0/reference/v2-token-meta)
+- [Solscan token holders](https://pro-api.solscan.io/pro-api-docs/v2.0/reference/v2-token-holders)
