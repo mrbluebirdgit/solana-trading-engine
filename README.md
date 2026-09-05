@@ -4,9 +4,9 @@ A private, modular system for researching Solana activity, evaluating trade oppo
 
 ## Current status
 
-The repository foundation and credential-validation workflows for Helius, Jupiter, Birdeye, and the observation worker are implemented. Telegram Bot delivery is implemented but still needs the operator's Bot token and allowed chat ID; the separate future Telegram user-account ingestion path currently has only a local format validator. GMGN remains an optional, local-only research adapter; automated secret-bearing verification is disabled until it can use a directly reviewed, reproducibly locked integration. Research governance is explicit: material rules carry a source, evidence class, limitations, and calibration status, and research hypotheses must define falsification tests before promotion. The current numeric policy contains paper-only hypotheses and conservative guardrails—not empirically proven optimums.
+The repository foundation and credential-validation workflows for Helius, Jupiter, Birdeye, GMGN, and the observation worker are implemented. Telegram Bot delivery is implemented but still requires the operator's Bot token and allowed chat ID; the separate future Telegram user-account ingestion path currently has only a local format validator. Birdeye REST and the exact-locked official GMGN CLI now provide candidate-triggered, read-only evidence after a narrative match clears the alert floor. Persisted request budgets and provider backoff keep those calls bounded. Research governance is explicit: material rules carry a source, evidence class, limitations, and calibration status, and research hypotheses must define falsification tests before promotion. The current numeric policy contains paper-only hypotheses and conservative guardrails—not empirically proven optimums.
 
-The read-only canonical Pump/PumpSwap stage resolver, Helius point collector, Pump log observer, Jupiter intended-size quote adapter, and channel-agnostic alert delivery exist. An observation-only narrative radar now adds modular X, LunarCrush, NewsAPI, approved RSS, and GDELT attention collection; shared entity extraction and clustering; Helius/DexScreener mint enrichment; Pump mint matching; research-priority scoring; ledger evidence; and the existing Telegram Bot alert path. The observer remains live-locked: the current evaluator emits only `REJECT` or `ALERT_ONLY`; `PAPER_ELIGIBLE` is reserved and currently unreachable. A calibrated scorer, paper executor, transactional paper-state persistence, reconnect backfill, and an actual always-on deployment do not exist. No master trading executor exists, and live trading remains locked.
+The read-only canonical Pump/PumpSwap stage resolver, Helius point collector, Pump log observer, Jupiter intended-size quote adapter, and channel-agnostic alert delivery exist. An observation-only narrative radar adds modular X, LunarCrush, NewsAPI, approved RSS, and GDELT attention collection; shared entity extraction and clustering; Helius/DexScreener mint enrichment; Pump mint matching; research-priority scoring; candidate-triggered Birdeye/GMGN evidence; ledger evidence; and Telegram alerts. Successful alerts with an observed price are followed at 1, 5, 15, and 60 minutes, with point-to-point changes persisted and optionally sent to Telegram. The observer remains live-locked: the current evaluator emits only `REJECT` or `ALERT_ONLY`; `PAPER_ELIGIBLE` is reserved and currently unreachable. A calibrated scorer, paper executor, transactional paper-state persistence, reconnect backfill, and a confirmed always-on deployment do not exist. No master trading executor exists, and live trading remains locked.
 
 See the [strategy specification](docs/STRATEGY_SPECIFICATION.md), [narrative radar](docs/NARRATIVE_RADAR.md), [evidence ledger](docs/EVIDENCE_LEDGER.md), [research and calibration protocol](docs/RESEARCH_AND_CALIBRATION_PROTOCOL.md), [master decision contract](docs/MASTER_DECISION_CONTRACT.md), [market participation feature specification](docs/TRAFFIC_FEATURE_SPECIFICATION.md), [Pump stage resolver](docs/PUMP_STAGE_RESOLVER.md), [audit of supplied recommendations](docs/SUPPLIED_RECOMMENDATION_AUDIT.md), [machine-readable evidence registry](config/evidence-registry.v1.json), [narrative source catalog](config/narrative-source-catalog.v1.json), [traffic feature catalog](config/traffic-feature-catalog.v1.json), [paper-only hypothesis candidates](config/hypothesis-candidates.v1.json), [versioned policy](config/policy.v1.yaml), and [complete integration roadmap](docs/INTEGRATION_ROADMAP.md).
 
@@ -42,6 +42,14 @@ Set `NARRATIVE_RADAR_ENABLED=true` and configure at least one of
 same ledger, and uses the same optional Telegram Bot channel. It has no default
 keywords or wallet lists, and its uncalibrated priority score can route alerts
 only—it cannot authorize a trade. See the [radar runbook](docs/NARRATIVE_RADAR.md).
+
+Add `BIRDEYE_API_KEY` and/or `GMGN_API_KEY` for bounded evidence enrichment and
+post-alert price checks. These providers are not polled for every mint. By
+default, generic opportunity alerts are disabled when the narrative radar is
+enabled so Telegram receives only threshold-clearing narrative alerts and their
+measured follow-ups. LunarCrush and NewsAPI also use persisted daily ceilings,
+exponential failure backoff, and `Retry-After` handling rather than relying on
+one unlimited polling clock.
 
 ## Research-governed decision system
 
@@ -97,7 +105,12 @@ Required secret name:
 
 - `GMGN_API_KEY`
 
-The current GMGN key is read-only. The repository retains a local normalization and health-check scaffold, but GitHub Actions does not install a third-party GMGN CLI or expose `GMGN_API_KEY` to it. Automated live verification stays disabled until the dependency and its transitive supply chain can be reviewed and reproducibly locked. Trading permissions, signing keys, and GMGN-controlled execution remain disabled.
+The GMGN integration invokes an exact-version, lockfile-pinned official CLI with
+a fixed read-only token-information command, maps the response into the engine's
+provider-independent observation contract, and rejects `GMGN_PRIVATE_KEY` at
+startup. GitHub's owner-triggered verifier and the deployment preflight can test
+read access without printing returned token data. Swap, order, wallet, and
+GMGN-controlled execution commands are never accepted.
 
 See [intelligence architecture](docs/INTELLIGENCE_ARCHITECTURE.md) for the boundary between external references and our engine.
 

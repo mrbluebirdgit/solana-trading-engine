@@ -61,6 +61,16 @@ export function createHealthHandler({ getState, now = () => new Date() } = {}) {
         narrativeSampleCount: state.narrativeSampleCount ?? 0,
         narrativeMatchesObserved: state.narrativeMatchesObserved ?? 0,
         narrativeAlertsSent: state.narrativeAlertsSent ?? 0,
+        narrativeProviderEvidenceAttempts:
+          state.narrativeProviderEvidenceAttempts ?? 0,
+        narrativeProviderEvidenceSuccesses:
+          state.narrativeProviderEvidenceSuccesses ?? 0,
+        narrativeProviderEnrichment:
+          state.narrativeProviderEnrichment ?? null,
+        narrativeOutcomeTracking:
+          state.narrativeOutcomeTracking ?? null,
+        narrativeAttentionBudgets:
+          state.narrativeAttentionBudgets ?? null,
         narrativeFailedMints: state.narrativeFailedMints ?? 0,
         queueSaturated: state.queueSaturated ?? null,
         overloadedEvents: state.overloadedEvents ?? 0,

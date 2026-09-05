@@ -8,7 +8,30 @@ function valueOrUnknown(value, suffix = "") {
   return Number.isFinite(value) ? `${value}${suffix}` : "unknown";
 }
 
-export function formatNarrativeAlert(match) {
+function usd(value) {
+  if (!Number.isFinite(value)) return "unknown";
+  if (value >= 1) return `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  if (value >= 0.01) return `$${value.toFixed(4)}`;
+  return `$${value.toPrecision(6)}`;
+}
+
+function share(value) {
+  return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : "unknown";
+}
+
+function booleanEvidence(value) {
+  return typeof value === "boolean" ? (value ? "yes" : "NO") : "unknown";
+}
+
+function providerLine(evidence, provider) {
+  const result = evidence?.providers?.find((item) => item.provider === provider);
+  if (!result) return `${provider}: not configured`;
+  if (!result.ok) return `${provider}: unavailable (${result.errorCode ?? "request failed"})`;
+  const partial = result.partialErrors?.length > 0 ? "; partial" : "";
+  return `${provider}: ${result.capabilities.join(", ") || "connected"}${partial}`;
+}
+
+export function formatNarrativeAlert(match, evidence = null) {
   if (
     match?.runtimeAuthority !== false ||
     match?.narrative?.runtimeAuthority !== false ||
@@ -23,6 +46,20 @@ export function formatNarrativeAlert(match) {
   const velocity = narrative.velocity === null
     ? "unknown (no baseline)"
     : `${narrative.velocity >= 0 ? "+" : ""}${narrative.velocity.toFixed(2)} relative change vs baseline`;
+  const providerEvidence = evidence ? [
+    `price at alert: ${usd(evidence.market?.priceUsd)} (${evidence.market?.priceProvider ?? "unknown"})`,
+    `liquidity: ${usd(evidence.market?.liquidityUsd)} (${evidence.market?.liquidityProvider ?? "unknown"})`,
+    `market cap: ${usd(evidence.market?.marketCapUsd)} (${evidence.market?.marketCapProvider ?? "unknown"})`,
+    `recent volume: ${usd(evidence.market?.volumeUsd)} (${evidence.market?.volumeProvider ?? "unknown"})`,
+    `holders: ${valueOrUnknown(evidence.market?.holderCount)} (${evidence.market?.holderProvider ?? "unknown"})`,
+    `top 10 held: ${share(evidence.market?.top10HolderShare)} (${evidence.market?.top10HolderProvider ?? "unknown"})`,
+    `GMGN smart/KOL wallets: ${valueOrUnknown(evidence.market?.smartMoneyParticipants)}/${valueOrUnknown(evidence.market?.notableWalletParticipants)}`,
+    `GMGN bundled trading share: ${share(evidence.market?.providerBundledTradingVolumeShare)}`,
+    `mint/freeze authority renounced: ${booleanEvidence(evidence.market?.mintAuthorityRenounced)}/${booleanEvidence(evidence.market?.freezeAuthorityRenounced)}`,
+    `provider rug ratio: ${share(evidence.market?.providerRugRatio)} (${evidence.market?.rugRatioProvider ?? "unknown"})`,
+    providerLine(evidence, "birdeye"),
+    providerLine(evidence, "gmgn"),
+  ] : [];
   return Object.freeze({
     title: `NARRATIVE ${shortMint(mint)} · ${narrative.label}`,
     body: [
@@ -36,6 +73,7 @@ export function formatNarrativeAlert(match) {
       `observed matching mints/15m: ${match.competingMintCount}`,
       `token: ${mintCandidate.name ?? "unknown"} (${mintCandidate.symbol ?? "unknown"})`,
       `stage: ${mintCandidate.venueStage ?? "unknown"}`,
+      ...providerEvidence,
       `image: ${mintCandidate.imageUrl ? "yes" : "unknown"}`,
       `attached socials: ${mintCandidate.socialLinks.length}`,
       `missing evidence: ${score.missingEvidence.join(", ") || "none"}`,

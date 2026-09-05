@@ -7,6 +7,7 @@ export async function readLunarCrushTopics({
   fetchImpl = fetch,
   now = new Date(),
   signal,
+  budget,
 } = {}) {
   if (typeof apiKey !== "string" || apiKey.trim() === "") {
     throw new TypeError("LunarCrush API key is required");
@@ -17,6 +18,7 @@ export async function readLunarCrushTopics({
       fetchImpl,
       signal,
       provider: "LunarCrush",
+      budget,
       headers: { authorization: `Bearer ${apiKey.trim()}` },
     },
   );

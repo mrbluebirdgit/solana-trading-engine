@@ -18,8 +18,93 @@ test("parses a live-locked observe-only runtime", () => {
   assert.equal(result.maximumEventAgeMs, 30_000);
   assert.equal(result.observationLogPath, "/tmp/project/data/observations.jsonl");
   assert.equal(result.narrativeRadarEnabled, false);
+  assert.equal(result.genericOpportunityAlertsEnabled, true);
   assert.equal(result.narrativeAlertMinimumPriority, 70);
+  assert.equal(result.narrativePollIntervalMs, 1_200_000);
+  assert.equal(result.birdeyeDailyRequestLimit, 100);
+  assert.equal(result.gmgnDailyRequestLimit, 50);
+  assert.equal(result.narrativeOutcomeTrackingEnabled, false);
+  assert.equal(result.lunarCrushDailyRequestLimit, 100);
+  assert.equal(result.lunarCrushDailyRequestReserve, 10);
+  assert.equal(result.newsApiDailyRequestLimit, 100);
+  assert.equal(result.newsApiDailyRequestReserve, 10);
   assert.deepEqual(result.narrativeNewsCountries, ["us"]);
+});
+
+test("enables bounded candidate enrichment and persisted outcome tracking from read-only keys", () => {
+  const parsed = parseObserverRuntime({
+    env: {
+      ...required,
+      BIRDEYE_API_KEY: "birdeye-read-only-key",
+      GMGN_API_KEY: "gmgn-read-only-key",
+      BIRDEYE_DAILY_REQUEST_LIMIT: "20",
+      BIRDEYE_DAILY_REQUEST_RESERVE: "2",
+      GMGN_DAILY_REQUEST_LIMIT: "10",
+      GMGN_DAILY_REQUEST_RESERVE: "1",
+    },
+    cwd: "/var/lib/solana-observer",
+  });
+  assert.equal(parsed.birdeyeApiKey, "birdeye-read-only-key");
+  assert.equal(parsed.gmgnApiKey, "gmgn-read-only-key");
+  assert.equal(parsed.narrativeOutcomeTrackingEnabled, true);
+  assert.deepEqual(parsed.narrativeOutcomeCheckpointsMs, [
+    60_000,
+    300_000,
+    900_000,
+    3_600_000,
+  ]);
+  assert.equal(
+    parsed.birdeyeBudgetStatePath,
+    "/var/lib/solana-observer/data/birdeye-budget.v1.json",
+  );
+  assert.equal(parsed.birdeyeDailyRequestLimit, 20);
+  assert.equal(parsed.birdeyeDailyRequestReserve, 2);
+});
+
+test("rejects signing material and unsafe supplemental-provider budgets", () => {
+  assert.throws(
+    () => parseObserverRuntime({
+      env: { ...required, GMGN_PRIVATE_KEY: "never-accept-this" },
+    }),
+    /must not be configured/,
+  );
+  assert.throws(
+    () => parseObserverRuntime({
+      env: {
+        ...required,
+        BIRDEYE_API_KEY: "birdeye-read-only-key",
+        BIRDEYE_DAILY_REQUEST_LIMIT: "10",
+        BIRDEYE_DAILY_REQUEST_RESERVE: "10",
+      },
+    }),
+    /must be smaller than its limit/,
+  );
+  assert.throws(
+    () => parseObserverRuntime({
+      env: { ...required, NARRATIVE_OUTCOME_TRACKING_ENABLED: "true" },
+    }),
+    /requires BIRDEYE_API_KEY or GMGN_API_KEY/,
+  );
+  assert.throws(
+    () => parseObserverRuntime({
+      env: {
+        ...required,
+        LUNARCRUSH_DAILY_REQUEST_LIMIT: "10",
+        LUNARCRUSH_DAILY_REQUEST_RESERVE: "10",
+      },
+    }),
+    /LUNARCRUSH_DAILY_REQUEST_RESERVE must be smaller/,
+  );
+  assert.throws(
+    () => parseObserverRuntime({
+      env: {
+        ...required,
+        NEWSAPI_DAILY_REQUEST_LIMIT: "10",
+        NEWSAPI_DAILY_REQUEST_RESERVE: "10",
+      },
+    }),
+    /NEWSAPI_DAILY_REQUEST_RESERVE must be smaller/,
+  );
 });
 
 test("enables narrative discovery only with an explicitly configured source", () => {
@@ -36,6 +121,7 @@ test("enables narrative discovery only with an explicitly configured source", ()
     },
   });
   assert.equal(parsed.narrativeRadarEnabled, true);
+  assert.equal(parsed.genericOpportunityAlertsEnabled, false);
   assert.deepEqual(parsed.narrativeXWoeids, [1, 23424977]);
   assert.equal(parsed.narrativeGdeltEnabled, true);
   assert.equal(parsed.narrativeAlertMinimumPriority, 75);
@@ -46,6 +132,18 @@ test("enables narrative discovery only with an explicitly configured source", ()
     }),
     /requires X, LunarCrush, NewsAPI, or approved RSS/,
   );
+});
+
+test("allows generic opportunity alerts to be opted in independently", () => {
+  const parsed = parseObserverRuntime({
+    env: {
+      ...required,
+      NARRATIVE_RADAR_ENABLED: "true",
+      NEWSAPI_KEY: "news-key",
+      GENERIC_OPPORTUNITY_ALERTS_ENABLED: "true",
+    },
+  });
+  assert.equal(parsed.genericOpportunityAlertsEnabled, true);
 });
 
 test("rejects unsafe narrative runtime controls", () => {

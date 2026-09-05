@@ -12,6 +12,9 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 COPY package*.json ./
+RUN npm ci --omit=dev --ignore-scripts \
+    && npm cache clean --force
+
 COPY config ./config
 COPY scripts ./scripts
 COPY src ./src
