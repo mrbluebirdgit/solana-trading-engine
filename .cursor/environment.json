@@ -1,0 +1,4 @@
+{
+  "name": "Solana Trading Engine",
+  "install": "npm install --no-audit --no-fund --no-package-lock"
+}
