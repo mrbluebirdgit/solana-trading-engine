@@ -42,3 +42,31 @@ test("fails closed before network calls when a credential is absent", async () =
     /telegramChatId is required/,
   );
 });
+
+test("verifies configured Birdeye and GMGN read access before sending the preflight", async () => {
+  const checked = [];
+  let body = "";
+  const result = await verifyObserverLive({
+    ...credentials,
+    birdeyeApiKey: "birdeye-key",
+    gmgnApiKey: "gmgn-key",
+  }, {
+    runObserverImpl: async ({ onStatus }) => {
+      queueMicrotask(() => onStatus({ state: "subscribed", subscriptionId: 7 }));
+      return { stop: () => {} };
+    },
+    requestQuoteImpl: async () => ({ providerQuoteId: "quote-1" }),
+    checkBirdeyeImpl: async (key) => { checked.push(["birdeye", key]); },
+    checkGmgnImpl: async (key) => { checked.push(["gmgn", key]); },
+    deliverTelegramImpl: async (request) => {
+      body = request.body;
+      return { messageId: 10 };
+    },
+  });
+  assert.deepEqual(checked.sort(), [
+    ["birdeye", "birdeye-key"],
+    ["gmgn", "gmgn-key"],
+  ]);
+  assert.match(body, /Birdeye \+ GMGN read access/);
+  assert.deepEqual(result.supplementalProviders, ["Birdeye", "GMGN"]);
+});

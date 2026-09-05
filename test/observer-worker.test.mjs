@@ -104,6 +104,66 @@ test("persists raw discovery before enrichment and sends an observe-only alert",
   assert.equal(healthClosed, true);
 });
 
+test("suppresses generic opportunity alerts when the selective narrative lane is enabled", async () => {
+  const deliveries = [];
+  let callbacks;
+  const worker = await startObserverWorker({
+    ...healthyProviders,
+    config: {
+      ...config,
+      genericOpportunityAlertsEnabled: false,
+    },
+    clock: () => new Date("2026-09-04T12:00:00.000Z"),
+    sleepImpl: async () => {},
+    logger: { log: () => {}, error: () => {} },
+    createLedgerImpl: () => ({
+      ready: async () => {},
+      append: async () => {},
+      flush: async () => {},
+    }),
+    startHealthServerImpl: async () => ({ close: async () => {} }),
+    runObserverImpl: async (options) => {
+      callbacks = options;
+      return { stop: () => {} };
+    },
+    resolveMintsImpl: async () => ({
+      mints: ["mint-selective"],
+      source: "transaction",
+      resolvedEventType: "create",
+    }),
+    observeOpportunityImpl: async () => ({
+      stage: { mint: "mint-selective", venueStage: "migration_pending" },
+      quotes: { buyPriceImpactPercent: 0.5, sellPriceImpactPercent: 0.8 },
+      quoteError: null,
+      decision: { decision: "ALERT_ONLY", runtimeAuthority: false },
+      alert: { title: "candidate", body: "observe only", priority: "high" },
+      runtimeAuthority: false,
+    }),
+    deliverTelegramImpl: async (message) => {
+      deliveries.push(message);
+      return { ok: true };
+    },
+  });
+
+  const submitted = callbacks.onEvent({
+    source: "helius",
+    streamVersion: "v1",
+    signature: "signature-selective",
+    slot: 101,
+    eventType: "create",
+    candidateMints: [],
+    logs: ["Program log: Instruction: Create"],
+    err: null,
+    runtimeAuthority: false,
+  });
+  await submitted.promise;
+  await worker.waitForIdle();
+
+  // The first delivery is the startup probe. No generic token alert follows.
+  assert.equal(deliveries.length, 1);
+  await worker.stop();
+});
+
 test("starts one integrated narrative radar and forwards resolved Pump mints", async () => {
   const order = [];
   const observedMints = [];

@@ -60,9 +60,14 @@ test("X Recent Search limits queries and preserves independent authors", async (
 });
 
 test("LunarCrush is retained as an aggregate social source", async () => {
+  let permits = 0;
   const [sample] = await readLunarCrushTopics({
     apiKey: "lunar-secret",
     now: NOW,
+    budget: {
+      take: async () => { permits += 1; return { ok: true }; },
+      blockFor: async () => {},
+    },
     fetchImpl: async () => ({
       ok: true,
       json: async () => ({ data: [{
@@ -77,6 +82,7 @@ test("LunarCrush is retained as an aggregate social source", async () => {
   assert.equal(sample.sourceFamily, "social_aggregate");
   assert.ok(sample.upstreamSources.includes("x"));
   assert.equal(sample.metrics.contributors, 20);
+  assert.equal(permits, 1);
 });
 
 test("NewsAPI top headlines use explicit country scope, not an unsupported language parameter", async () => {
@@ -100,6 +106,42 @@ test("NewsAPI top headlines use explicit country scope, not an unsupported langu
   assert.equal(requested.searchParams.get("country"), "us");
   assert.equal(requested.searchParams.has("language"), false);
   assert.equal(samples.length, 1);
+});
+
+test("attention requests persist provider Retry-After and stop before exhausted quota", async () => {
+  let blockedFor = null;
+  await assert.rejects(
+    readNewsApiHeadlines({
+      apiKey: "news-secret",
+      countries: ["us"],
+      now: NOW,
+      budget: {
+        take: async () => ({ ok: true }),
+        blockFor: async (milliseconds) => { blockedFor = milliseconds; },
+      },
+      fetchImpl: async () => ({
+        ok: false,
+        status: 429,
+        headers: { get: () => "120" },
+      }),
+    }),
+    /HTTP 429/,
+  );
+  assert.equal(blockedFor, 120_000);
+
+  let fetched = false;
+  await assert.rejects(
+    readLunarCrushTopics({
+      apiKey: "lunar-secret",
+      now: NOW,
+      budget: {
+        take: async () => ({ ok: false, reason: "daily_budget_exhausted" }),
+      },
+      fetchImpl: async () => { fetched = true; },
+    }),
+    /daily budget exhausted/,
+  );
+  assert.equal(fetched, false);
 });
 
 test("RSS parsing supports RSS and keeps exact publication provenance", () => {

@@ -4,11 +4,23 @@ The engine owns its data model, evidence fusion, scoring, risk controls, routing
 
 ## Provider boundary
 
-The GMGN adapter maps its provider-specific market and intelligence fields into `TokenObservation` schema version 2. Version 2 preserves GMGN's `bundler_rate` as `providerBundlerRate` with an unspecified denominator and maps `bundler_trader_amount_rate` separately to `providerBundledTradingVolumeShare`. Both retain a provider method/version, so neither can be mistaken for supply held or an independently reconstructed cohort. Jupiter maps to `RouteQuote`; Helius stage collection uses its own point-in-time stage contract. A separate point-in-time `TrafficSnapshot` composes aligned multi-window flow, participation, ownership, executable-depth and social measurements without producing a verdict. Its `providerLabels` collection is deliberately outside `launchCohorts`. Core scoring will consume these internal schemas rather than importing a provider SDK or field names. Each observation and snapshot-provenance record includes its source, source-method version and timestamp so conflicting data can be detected instead of silently averaged.
+The GMGN adapter maps its provider-specific market and intelligence fields into `TokenObservation` schema version 2. Version 2 preserves GMGN's `bundler_rate` as `providerBundlerRate` with an unspecified denominator and maps `bundler_trader_amount_rate` separately to `providerBundledTradingVolumeShare`. Both retain a provider method/version, so neither can be mistaken for supply held or an independently reconstructed cohort. Jupiter maps to `RouteQuote`; Helius stage collection uses its own point-in-time stage contract. A separate point-in-time `TrafficSnapshot` composes aligned multi-window flow, participation, ownership, executable-depth and social measurements without producing a verdict. Its `providerLabels` collection is deliberately outside `launchCohorts`. Core scoring consumes internal schemas rather than provider-native field names. Each observation and snapshot-provenance record includes its source, source-method version and timestamp so conflicting data can be detected instead of silently averaged.
 
 These schemas and validation boundaries are implemented. The canonical venue-stage resolver, a read-only Helius point collector, a live-locked Pump log observer, an append-only observation ledger, and an observation-only narrative radar also exist. The radar uses provider adapters, a shared entity/cluster pipeline, canonical Pump mint events, and non-authoritative research scoring; aggregate social providers collapse to one social evidence channel. Durable market-traffic collectors, launch-cohort builders, canonical migration-LP evidence collection, transactional paper-state persistence, and an actual always-on deployment do not. No schema instance should be described as independently verified merely because it validates structurally or was populated by one adapter.
 
-GMGN is currently authorized only for supplemental read-only intelligence. Its CLI-backed health check is an optional local scaffold; it is not installed in GitHub Actions and no repository secret is exposed to it. Automated verification remains disabled until the dependency and its transitive supply chain can be reviewed and reproducibly locked. No GMGN package is installed as a core engine dependency, and no GMGN trading instruction is accepted by the engine.
+GMGN is authorized only for supplemental read-only intelligence. Its official CLI
+is pinned to an exact version in the dependency lockfile, installed with package
+scripts disabled, and invoked from a neutral temporary directory with a fixed
+`token info` command. The child process receives an allowlisted environment and
+no wallet secret. Startup rejects `GMGN_PRIVATE_KEY`; swap, order, and wallet
+commands are never constructed or accepted. Owner-triggered GitHub verification
+and deployment preflight can check read access without logging returned data.
+
+Birdeye is likewise authorized only for direct, read-only REST observations.
+Candidate enrichment calls token overview and token security with an explicit
+Solana header. Provider-specific rate limits, plan restrictions, missing fields,
+and disagreement remain visible rather than being coerced into a pass/fail
+trading verdict.
 
 Jupiter is currently authorized for read-only price and route data. Its provider response is translated into our own `RouteQuote` schema before the engine sees it. The read-only adapter never supplies a taker, receiver, or payer, and it deliberately drops any transaction data from provider responses. Building, signing, and submitting transactions remain separate, disabled capabilities.
 

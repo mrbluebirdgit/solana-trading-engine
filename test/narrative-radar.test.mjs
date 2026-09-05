@@ -151,3 +151,249 @@ test("radar does not report an alert as sent when notifications are disabled", a
   assert.equal(radar.state().alertsSent, 0);
   await radar.stop();
 });
+
+test("enriches only alert-eligible matches and starts persisted outcome tracking", async () => {
+  const records = [];
+  const alerts = [];
+  const tracked = [];
+  let providerStopped = false;
+  let trackerStopped = false;
+  const evidence = {
+    schemaVersion: 1,
+    observedAt: NOW.toISOString(),
+    mint: "mint-1",
+    providers: [{
+      provider: "birdeye",
+      ok: true,
+      observation: {},
+      capabilities: ["market", "security"],
+      partialErrors: [],
+      error: null,
+      runtimeAuthority: false,
+    }, {
+      provider: "gmgn",
+      ok: true,
+      observation: {},
+      capabilities: ["wallet_labels"],
+      partialErrors: [],
+      error: null,
+      runtimeAuthority: false,
+    }],
+    market: {
+      priceUsd: 0.001,
+      priceProvider: "birdeye",
+      liquidityUsd: 25_000,
+      liquidityProvider: "birdeye",
+      marketCapUsd: 100_000,
+      marketCapProvider: "birdeye",
+      volumeUsd: 7_500,
+      volumeProvider: "birdeye",
+      holderCount: 350,
+      holderProvider: "birdeye",
+      top10HolderShare: 0.22,
+      top10HolderProvider: "birdeye",
+      smartMoneyParticipants: 4,
+      notableWalletParticipants: 2,
+      providerBundledTradingVolumeShare: 0.07,
+      mintAuthorityRenounced: true,
+      freezeAuthorityRenounced: true,
+      providerRugRatio: 0.08,
+      rugRatioProvider: "gmgn",
+      runtimeAuthority: false,
+    },
+    runtimeAuthority: false,
+  };
+  const radar = createNarrativeRadar({
+    config: config({
+      birdeyeApiKey: "birdeye-key",
+      gmgnApiKey: "gmgn-key",
+      narrativeOutcomeTrackingEnabled: true,
+      narrativeOutcomeNotificationsEnabled: true,
+      narrativeOutcomeStatePath: "/tmp/outcomes.json",
+      narrativeOutcomeCheckpointsMs: [60_000],
+    }),
+    append: async (record) => { records.push(record); },
+    deliver: async (alert) => {
+      alerts.push(alert);
+      return { messageId: 77 };
+    },
+    logger: { error: () => {} },
+    clock: () => NOW,
+    setTimeoutImpl: () => 1,
+    clearTimeoutImpl: () => {},
+    runPipelineImpl: async ({ index }) => {
+      index.ingestAttention([attention()]);
+      return {
+        configuredAdapterCount: 1,
+        successfulAdapterCount: 1,
+        configuredDiscoveryAdapterCount: 1,
+        successfulDiscoveryAdapterCount: 1,
+        configuredConfirmationAdapterCount: 0,
+        successfulConfirmationAdapterCount: 0,
+        acceptedSampleCount: 1,
+        narrativeCount: 1,
+        adapterResults: [{ name: "x", ok: true, samples: [attention()], error: null }],
+        matches: [],
+      };
+    },
+    enrichPumpMintImpl: async () => candidate(),
+    createProviderEnricherImpl: () => ({
+      start: async () => ({
+        configuredProviders: ["birdeye", "gmgn"],
+        providerReadiness: { birdeye: { ok: true }, gmgn: { ok: true } },
+        budgets: {},
+      }),
+      enrich: async () => evidence,
+      readPrice: async () => {},
+      snapshot: () => ({ configuredProviders: ["birdeye", "gmgn"] }),
+      stop: async () => { providerStopped = true; },
+    }),
+    createOutcomeTrackerImpl: () => ({
+      start: async () => {},
+      track: async (input) => { tracked.push(input); },
+      snapshot: () => ({ pendingCheckpoints: 1 }),
+      stop: async () => { trackerStopped = true; },
+    }),
+  });
+  await radar.start();
+  await radar.observePumpMint({
+    mint: "mint-1",
+    eventSlot: 10,
+    venueStage: "pump_curve_active",
+    observedAt: NOW.toISOString(),
+  });
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0].body, /price at alert: \$0\.00100000 \(birdeye\)/);
+  assert.match(alerts[0].body, /GMGN smart\/KOL wallets: 4\/2/);
+  assert.equal(tracked.length, 1);
+  assert.equal(tracked[0].initialPriceUsd, 0.001);
+  assert.equal(
+    records.some((record) => record.recordType === "narrative_candidate_provider_evidence"),
+    true,
+  );
+  const delivery = records.find((record) => record.recordType === "narrative_alert_delivered");
+  assert.equal(delivery.telegramMessageId, 77);
+  assert.equal(delivery.detectionToDeliveryMs, 0);
+  await radar.stop();
+  assert.equal(providerStopped, true);
+  assert.equal(trackerStopped, true);
+});
+
+test("does not spend candidate-provider quota below the alert floor", async () => {
+  let enrichmentCalls = 0;
+  const alerts = [];
+  const radar = createNarrativeRadar({
+    config: config({
+      birdeyeApiKey: "birdeye-key",
+      narrativeAlertMinimumPriority: 101,
+      narrativeOutcomeTrackingEnabled: false,
+    }),
+    append: async () => {},
+    deliver: async (alert) => { alerts.push(alert); },
+    logger: { error: () => {} },
+    clock: () => NOW,
+    setTimeoutImpl: () => 1,
+    clearTimeoutImpl: () => {},
+    runPipelineImpl: async ({ index }) => {
+      index.ingestAttention([attention()]);
+      return {
+        configuredAdapterCount: 1,
+        successfulAdapterCount: 1,
+        configuredDiscoveryAdapterCount: 1,
+        successfulDiscoveryAdapterCount: 1,
+        configuredConfirmationAdapterCount: 0,
+        successfulConfirmationAdapterCount: 0,
+        acceptedSampleCount: 1,
+        narrativeCount: 1,
+        adapterResults: [{ name: "x", ok: true, samples: [attention()], error: null }],
+        matches: [],
+      };
+    },
+    enrichPumpMintImpl: async () => candidate(),
+    createProviderEnricherImpl: () => ({
+      start: async () => ({
+        configuredProviders: ["birdeye"],
+        providerReadiness: { birdeye: { ok: true } },
+        budgets: {},
+      }),
+      enrich: async () => { enrichmentCalls += 1; },
+      readPrice: async () => {},
+      snapshot: () => ({ configuredProviders: ["birdeye"] }),
+      stop: async () => {},
+    }),
+  });
+
+  await radar.start();
+  await radar.observePumpMint({
+    mint: "mint-1",
+    eventSlot: 10,
+    venueStage: "pump_curve_active",
+    observedAt: NOW.toISOString(),
+  });
+  assert.equal(enrichmentCalls, 0);
+  assert.equal(alerts.length, 0);
+  await radar.stop();
+});
+
+test("sends the base alert when supplemental enrichment fails unexpectedly", async () => {
+  const records = [];
+  const alerts = [];
+  const radar = createNarrativeRadar({
+    config: config({
+      birdeyeApiKey: "birdeye-key",
+      narrativeOutcomeTrackingEnabled: false,
+    }),
+    append: async (record) => { records.push(record); },
+    deliver: async (alert) => { alerts.push(alert); return { messageId: 88 }; },
+    logger: { error: () => {} },
+    clock: () => NOW,
+    setTimeoutImpl: () => 1,
+    clearTimeoutImpl: () => {},
+    runPipelineImpl: async ({ index }) => {
+      index.ingestAttention([attention()]);
+      return {
+        configuredAdapterCount: 1,
+        successfulAdapterCount: 1,
+        configuredDiscoveryAdapterCount: 1,
+        successfulDiscoveryAdapterCount: 1,
+        configuredConfirmationAdapterCount: 0,
+        successfulConfirmationAdapterCount: 0,
+        acceptedSampleCount: 1,
+        narrativeCount: 1,
+        adapterResults: [{ name: "x", ok: true, samples: [attention()], error: null }],
+        matches: [],
+      };
+    },
+    enrichPumpMintImpl: async () => candidate(),
+    createProviderEnricherImpl: () => ({
+      start: async () => ({
+        configuredProviders: ["birdeye"],
+        providerReadiness: { birdeye: { ok: true } },
+        budgets: {},
+      }),
+      enrich: async () => { throw new Error("supplemental provider unavailable"); },
+      readPrice: async () => {},
+      snapshot: () => ({ configuredProviders: ["birdeye"] }),
+      stop: async () => {},
+    }),
+  });
+
+  await radar.start();
+  await radar.observePumpMint({
+    mint: "mint-1",
+    eventSlot: 10,
+    venueStage: "pump_curve_active",
+    observedAt: NOW.toISOString(),
+  });
+  assert.equal(alerts.length, 1);
+  assert.equal(
+    records.some((record) =>
+      record.recordType === "narrative_candidate_provider_evidence_failed"),
+    true,
+  );
+  assert.equal(
+    records.some((record) => record.recordType === "narrative_alert_delivered"),
+    true,
+  );
+  await radar.stop();
+});

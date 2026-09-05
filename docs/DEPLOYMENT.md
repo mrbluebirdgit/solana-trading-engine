@@ -63,11 +63,26 @@ GitHub Actions secrets are not automatically available to a deployment host.
 | `NEWSAPI_KEY` | Conditional | Top-headline discovery |
 | `NARRATIVE_NEWS_COUNTRIES` | No | One to five comma-separated ISO alpha-2 headline scopes; defaults to `us` |
 | `NARRATIVE_RSS_FEEDS` | Conditional | Comma/newline-separated approved HTTPS RSS/Atom feeds |
-| `NARRATIVE_POLL_INTERVAL_MS` | No | Attention polling interval; defaults to `60000` ms |
+| `NARRATIVE_POLL_INTERVAL_MS` | No | Attention polling interval; defaults to `1200000` ms (20 minutes) |
 | `NARRATIVE_X_RECENT_SEARCH_ENABLED` | No | Enables bounded X confirmation queries; defaults to `false` |
 | `NARRATIVE_GDELT_ENABLED` | No | Enables bounded GDELT confirmation queries; defaults to `false` |
 | `NARRATIVE_CONFIRMATION_MAX_TERMS` | No | Maximum terms confirmed per tick; defaults to `3` |
 | `NARRATIVE_ALERT_MIN_PRIORITY` | No | Uncalibrated research-routing floor; defaults to `70` |
+| `LUNARCRUSH_DAILY_REQUEST_LIMIT` | No | Persisted conservative ceiling; defaults to `100` |
+| `LUNARCRUSH_DAILY_REQUEST_RESERVE` | No | Calls held outside routine collection; defaults to `10` |
+| `NEWSAPI_DAILY_REQUEST_LIMIT` | No | Persisted conservative ceiling; defaults to `100` |
+| `NEWSAPI_DAILY_REQUEST_RESERVE` | No | Calls held outside routine collection; defaults to `10` |
+| `GENERIC_OPPORTUNITY_ALERTS_ENABLED` | No | Broad stage/quote alerts; defaults off in narrative mode to prevent duplicate alert traffic |
+| `BIRDEYE_API_KEY` | No | Candidate-triggered token overview, security, and price evidence |
+| `GMGN_API_KEY` | No | Candidate-triggered token intelligence and price evidence; never signing |
+| `CANDIDATE_PROVIDER_TIMEOUT_MS` | No | Maximum bounded enrichment wait; defaults to `6000` ms |
+| `BIRDEYE_DAILY_REQUEST_LIMIT` | No | Conservative configured ceiling; defaults to `100` |
+| `BIRDEYE_DAILY_REQUEST_RESERVE` | No | Calls held outside routine enrichment; defaults to `10` |
+| `GMGN_DAILY_REQUEST_LIMIT` | No | Conservative configured ceiling; defaults to `50` |
+| `GMGN_DAILY_REQUEST_RESERVE` | No | Calls held outside routine enrichment; defaults to `5` |
+| `NARRATIVE_OUTCOME_TRACKING_ENABLED` | No | Defaults on when Birdeye or GMGN is configured |
+| `NARRATIVE_OUTCOME_NOTIFICATIONS_ENABLED` | No | Sends measured price follow-ups; defaults to `true` |
+| `NARRATIVE_OUTCOME_CHECKPOINTS_MS` | No | Defaults to 1, 5, 15, and 60 minutes |
 
 When `NARRATIVE_RADAR_ENABLED=true`, at least one discovery source—X,
 LunarCrush, NewsAPI, or approved RSS—must be configured. Social and news keys
@@ -79,6 +94,11 @@ The user should create the Telegram bot and approved chat, enter the four
 required values directly into the host, and retain the ability to rotate or
 revoke each credential. Never provide a seed phrase, wallet private key, or
 Telegram user-session file to this service.
+
+On Render, attach the smallest persistent disk available and set its mount path
+to `/var/lib/solana-observer`. If the current service-creation form does not ask
+for a disk name, none needs to be entered; Render assigns the disk resource from
+the service. The mount path is the setting the container depends on.
 
 ## Build and preflight
 
@@ -103,9 +123,9 @@ docker run --rm --env-file /secure/host/path/observer.env \
 ```
 
 The combined observer preflight opens and acknowledges a Helius subscription,
-requests a read-only Jupiter SOL-to-USDC route, and sends one real Telegram test
-message to `TELEGRAM_ALLOWED_CHAT_ID`. It never builds, signs, or submits a
-transaction.
+requests a read-only Jupiter SOL-to-USDC route, optionally tests configured
+Birdeye and GMGN read access, and sends one real Telegram test message to
+`TELEGRAM_ALLOWED_CHAT_ID`. It never builds, signs, or submits a transaction.
 
 `/secure/host/path/observer.env` is an example location outside the repository.
 If an environment file is unavoidable, restrict it to the deployment account

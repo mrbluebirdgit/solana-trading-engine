@@ -1,4 +1,6 @@
 import { deliverTelegramBotAlert } from "../../integrations/alerts/deliver.mjs";
+import { checkBirdeyeReadAccess } from "../../integrations/birdeye/read-health.mjs";
+import { checkGmgnReadAccess } from "../../integrations/gmgn/read-health.mjs";
 import { runPumpLogsObserver } from "../../integrations/helius/logs-observer.mjs";
 import { requestJupiterQuote } from "../../integrations/jupiter/quote.mjs";
 import { NATIVE_SOL_MINT } from "../../integrations/pump/program-ids.mjs";
@@ -6,11 +8,20 @@ import { NATIVE_SOL_MINT } from "../../integrations/pump/program-ids.mjs";
 const MAINNET_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 export async function verifyObserverLive(
-  { heliusApiKey, jupiterApiKey, telegramBotToken, telegramChatId } = {},
+  {
+    heliusApiKey,
+    jupiterApiKey,
+    telegramBotToken,
+    telegramChatId,
+    birdeyeApiKey = null,
+    gmgnApiKey = null,
+  } = {},
   {
     runObserverImpl = runPumpLogsObserver,
     requestQuoteImpl = requestJupiterQuote,
     deliverTelegramImpl = deliverTelegramBotAlert,
+    checkBirdeyeImpl = checkBirdeyeReadAccess,
+    checkGmgnImpl = checkGmgnReadAccess,
     timeoutMs = 20_000,
     setTimeoutImpl = setTimeout,
     clearTimeoutImpl = clearTimeout,
@@ -71,16 +82,30 @@ export async function verifyObserverLive(
     amountAtomic: "10000000",
   });
 
+  const supplementalChecks = [];
+  if (typeof birdeyeApiKey === "string" && birdeyeApiKey.trim() !== "") {
+    supplementalChecks.push(checkBirdeyeImpl(birdeyeApiKey));
+  }
+  if (typeof gmgnApiKey === "string" && gmgnApiKey.trim() !== "") {
+    supplementalChecks.push(checkGmgnImpl(gmgnApiKey));
+  }
+  await Promise.all(supplementalChecks);
+  const supplementalProviders = Object.freeze([
+    ...(birdeyeApiKey?.trim() ? ["Birdeye"] : []),
+    ...(gmgnApiKey?.trim() ? ["GMGN"] : []),
+  ]);
+
   const delivery = await deliverTelegramImpl({
     botToken: telegramBotToken,
     chatId: telegramChatId,
-    body: "Solana observer preflight passed: Helius subscription, Jupiter quote, and Telegram delivery are working. Mode: observe only; trading authority: false.",
+    body: `Solana observer preflight passed: Helius subscription, Jupiter quote${supplementalProviders.length > 0 ? `, ${supplementalProviders.join(" + ")} read access` : ""}, and Telegram delivery are working. Mode: observe only; trading authority: false.`,
   });
 
   return Object.freeze({
     ok: true,
     heliusSubscription: "acknowledged",
     jupiterQuoteId: quote.providerQuoteId ?? null,
+    supplementalProviders,
     telegramMessageId: delivery.messageId ?? null,
     runtimeAuthority: false,
   });

@@ -41,14 +41,41 @@ function checkedEndpoint(url, provider) {
   return endpoint;
 }
 
+function retryAfterMilliseconds(response, now = new Date()) {
+  const raw = response?.headers?.get?.("retry-after");
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  if (/^\d+$/.test(raw.trim())) return Math.max(1_000, Number(raw.trim()) * 1_000);
+  const retryAt = new Date(raw).valueOf();
+  const nowMs = new Date(now).valueOf();
+  return Number.isFinite(retryAt) && retryAt > nowMs ? retryAt - nowMs : null;
+}
+
+async function applyBackoff(budget, options) {
+  if (!budget) return;
+  if (typeof budget.backoff === "function") {
+    await budget.backoff(options);
+    return;
+  }
+  if (typeof budget.blockFor === "function") {
+    await budget.blockFor(options.retryAfterMs ?? options.baseMs);
+  }
+}
+
 export async function requestJson(url, {
   fetchImpl = fetch,
   headers = {},
   timeoutMs = 8_000,
   signal: externalSignal,
   provider = "provider",
+  budget = null,
 } = {}) {
   const endpoint = checkedEndpoint(url, provider);
+  if (budget) {
+    const permit = await budget.take();
+    if (!permit.ok) {
+      throw new Error(`${provider} ${permit.reason.replaceAll("_", " ")}`);
+    }
+  }
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
   const signal = externalSignal
     ? AbortSignal.any([externalSignal, timeoutSignal])
@@ -58,17 +85,40 @@ export async function requestJson(url, {
     response = await fetchImpl(endpoint, { headers, signal });
   } catch (error) {
     if (externalSignal?.aborted) throw error;
+    await applyBackoff(budget, { baseMs: 30_000, maximumMs: 15 * 60 * 1_000 });
     if (timeoutSignal.aborted) throw new Error(`${provider} request timed out`);
     throw new Error(`${provider} request could not be completed`);
   }
   if (!response.ok) {
+    if (response.status === 429) {
+      await applyBackoff(budget, {
+        retryAfterMs: retryAfterMilliseconds(response) ?? 15 * 60 * 1_000,
+        baseMs: 30_000,
+        maximumMs: 24 * 60 * 60 * 1_000,
+      });
+    } else if (response.status === 401 || response.status === 403) {
+      await applyBackoff(budget, {
+        retryAfterMs: 24 * 60 * 60 * 1_000,
+        baseMs: 24 * 60 * 60 * 1_000,
+        maximumMs: 24 * 60 * 60 * 1_000,
+      });
+    } else if (response.status >= 500) {
+      await applyBackoff(budget, {
+        baseMs: 30_000,
+        maximumMs: 15 * 60 * 1_000,
+      });
+    }
     throw new Error(`${provider} returned HTTP ${response.status}`);
   }
+  let payload;
   try {
-    return await response.json();
+    payload = await response.json();
   } catch {
+    await applyBackoff(budget, { baseMs: 30_000, maximumMs: 5 * 60 * 1_000 });
     throw new Error(`${provider} returned malformed JSON`);
   }
+  await budget?.succeed?.();
+  return payload;
 }
 
 export async function requestText(url, {

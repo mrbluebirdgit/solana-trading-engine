@@ -247,6 +247,8 @@ export async function startObserverWorker({
     config.xBearerToken,
     config.lunarCrushApiKey,
     config.newsApiKey,
+    config.birdeyeApiKey,
+    config.gmgnApiKey,
   ].filter(Boolean);
   const state = {
     observerState: "starting",
@@ -300,6 +302,16 @@ export async function startObserverWorker({
       narrativeMintCount: narrativeState?.mintCount ?? 0,
       narrativeMatchesObserved: narrativeState?.matchesObserved ?? 0,
       narrativeAlertsSent: narrativeState?.alertsSent ?? 0,
+      narrativeProviderEvidenceAttempts:
+        narrativeState?.providerEvidenceAttempts ?? 0,
+      narrativeProviderEvidenceSuccesses:
+        narrativeState?.providerEvidenceSuccesses ?? 0,
+      narrativeProviderEnrichment:
+        narrativeState?.providerEnrichment ?? null,
+      narrativeOutcomeTracking:
+        narrativeState?.outcomeTracking ?? null,
+      narrativeAttentionBudgets:
+        narrativeState?.attentionBudgets ?? null,
       queuedEvents: ingressState.queued + enrichmentState.queued,
       activeEvents: ingressState.running + enrichmentState.running,
       ingressQueuedEvents: ingressState.queued,
@@ -589,7 +601,7 @@ export async function startObserverWorker({
             mint,
             eventSlot: event.slot,
             venueStage: observation.stage?.venueStage ?? null,
-            observedAt: output.observedAt,
+            observedAt: ingestedAt,
           });
         } catch (error) {
           // A missed mint cannot be reconstructed from the in-memory narrative
@@ -611,7 +623,12 @@ export async function startObserverWorker({
         }
       }
 
-      const notification = createObservationNotification(observation);
+      // Narrative mode is intended to be a selective alerting lane. Keep the
+      // broader stage/quote notification available for operators who opt in,
+      // but do not duplicate every narrative candidate into a generic alert.
+      const notification = config.genericOpportunityAlertsEnabled === false
+        ? null
+        : createObservationNotification(observation);
       const notificationTriggerAgeMs = ageMilliseconds(ingestedAt, clock);
       if (
         notification &&

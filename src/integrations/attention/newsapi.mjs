@@ -8,6 +8,7 @@ export async function readNewsApiHeadlines({
   fetchImpl = fetch,
   now = new Date(),
   signal,
+  budget,
 } = {}) {
   if (typeof apiKey !== "string" || apiKey.trim() === "") {
     throw new TypeError("NewsAPI key is required");
@@ -30,6 +31,7 @@ export async function readNewsApiHeadlines({
         fetchImpl,
         signal,
         provider: "NewsAPI",
+        budget,
         headers: { "x-api-key": apiKey.trim() },
       });
       if (!Array.isArray(payload?.articles)) {

@@ -8,10 +8,10 @@ This matrix separates required secrets from sources that need no credential. Eac
 |---:|---|---|---|---|
 | 1 | Telegram user API | Monitor approved Telegram sources | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`; local session later | Credential check implemented; client and ingestion pending |
 | 2 | Helius | Primary RPC, enhanced transactions, webhooks, WebSockets, replay | `HELIUS_API_KEY` | Read-only RPC check, Pump log observer, and stage collector implemented; not deployed |
-| 3 | GMGN | Supplemental wallet, market, and token-risk evidence | `GMGN_API_KEY` | Optional local adapter; automated secret-bearing verification disabled pending dependency review |
+| 3 | GMGN | Supplemental wallet, market, token-risk, and post-alert price evidence | `GMGN_API_KEY` | Candidate-triggered exact-locked CLI adapter, persisted quota budget, and owner-triggered read verification implemented; no execution commands accepted |
 | 4 | Jupiter | Price and provider-neutral route quotes; later execution candidate | `JUPITER_API_KEY` | Verified read-only price; quote adapter ready |
 | 5 | Telegram Bot API | Immediate alerts and authenticated pause/status commands | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_ID` | Alert delivery implemented; pause/status commands and deployment pending |
-| 6 | Birdeye Data | Independent token, wallet, security, holder, liquidity, trade, and historical market evidence | `BIRDEYE_API_KEY` | Verified read-only price access |
+| 6 | Birdeye Data | Independent token, security, holder, liquidity, trade, and post-alert market evidence | `BIRDEYE_API_KEY` | Candidate-triggered REST enrichment, persisted quota budget, read verification, and price follow-ups implemented |
 | 7 | Cielo API | Secondary wallet feed, discovery, profiling, and alert reconciliation | `CIELO_API_KEY` | Account/plan/key required |
 | 8 | X API v2 | Authorized pre-crypto meme discovery, velocity, unique authors, and cross-community spread | `X_BEARER_TOKEN`; cost ceiling required | Trends discovery and bounded recent-search confirmation implemented |
 | 9 | DexScreener API | Independent pair, liquidity, volume, price, and profile cross-check | No key for documented public API | Token-pair enrichment implemented; never canonical for lifecycle stage |
@@ -42,7 +42,9 @@ This matrix separates required secrets from sources that need no credential. Eac
 
 ## Verified official references
 
-- [Birdeye API authentication](https://docs.birdeye.so/docs/authentication-api-keys)
+- [Birdeye API authentication](https://data.birdeye.so/docs/authentication)
+- [Birdeye API rate limiting](https://data.birdeye.so/docs/guides/api-access/rate-limiting)
+- [GMGN official skills and CLI](https://github.com/GMGNAI/gmgn-skills)
 - [Cielo API setup](https://developer.cielo.finance/docs/getting-started)
 - [DexScreener API reference](https://docs.dexscreener.com/api/reference)
 - [Jupiter Swap API](https://developers.jup.ag/docs/swap)

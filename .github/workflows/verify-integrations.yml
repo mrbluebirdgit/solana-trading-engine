@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - birdeye
+          - gmgn
           - helius
           - jupiter
           - lunarcrush
@@ -48,6 +49,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
       - name: Run unit tests
         run: npm test
 
@@ -55,6 +59,37 @@ jobs:
         run: npm run verify:birdeye
         env:
           BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
+
+  verify-gmgn:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.provider == 'gmgn') ||
+      (github.event_name == 'issue_comment' &&
+       github.actor == github.repository_owner &&
+       github.event.comment.body == '/verify gmgn')
+    name: Verify GMGN read-only configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Verify GMGN read-only integration
+        run: npm run verify:gmgn
+        env:
+          GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
 
   verify-helius:
     if: >-
@@ -75,6 +110,9 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
 
       - name: Run unit tests
         run: npm test
@@ -103,6 +141,9 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
 
       - name: Run unit tests
         run: npm test
@@ -133,6 +174,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
       - name: Run unit tests
         run: npm test
 
@@ -143,6 +187,8 @@ jobs:
           JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_ALLOWED_CHAT_ID: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID }}
+          BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
+          GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
 
   verify-x:
     if: >-
@@ -162,6 +208,8 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
       - name: Run unit tests
         run: npm test
       - name: Verify X attention source
@@ -187,6 +235,8 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
       - name: Run unit tests
         run: npm test
       - name: Verify LunarCrush attention source
@@ -212,6 +262,8 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
       - name: Run unit tests
         run: npm test
       - name: Verify NewsAPI attention source

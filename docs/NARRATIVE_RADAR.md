@@ -31,9 +31,17 @@ chain clock:
    it cannot determine lifecycle state.
 6. Name, symbol, and description matching joins a new mint to the current
    narrative index. The 15-minute competing-mint count penalizes crowded names.
-7. The ledger receives `narrative_tick`, `narrative_mint_match`, and explicit
-   failure records. A dedupe gate sends at most one alert per narrative/mint pair
-   during the in-memory TTL.
+7. A candidate that clears the alert floor and pair dedupe may receive bounded,
+   parallel Birdeye and GMGN read-only enrichment. A provider timeout, quota
+   exhaustion, or plan restriction is recorded but does not suppress the base
+   narrative alert.
+8. The ledger receives the match, provider evidence, delivery latency, and
+   explicit failure records. A dedupe gate sends at most one alert per
+   narrative/mint pair during the in-memory TTL. Generic opportunity alerts are
+   off by default in narrative mode to prevent duplicate Telegram traffic.
+9. When an alert-time provider price exists, a durable tracker observes the same
+   mint after 1, 5, 15, and 60 minutes. It records point-to-point price change
+   and may send concise `RESULT` notifications.
 
 Adapter failure does not fabricate a zero. If every configured discovery source
 fails, narrative readiness becomes unhealthy. Helius metadata is required for a
@@ -53,7 +61,16 @@ until restart. A later social poll cannot erase that coverage gap.
 | Targeted confirmation | GDELT DOC API | None | Off |
 | Mint birth and identity | Helius Pump logs, transaction resolution, DAS | `HELIUS_API_KEY` | Existing observer path |
 | Pair enrichment | DexScreener token pairs | None | Best effort |
+| Threshold-triggered evidence | Birdeye token overview and security | `BIRDEYE_API_KEY` | Enabled when key exists |
+| Threshold-triggered evidence | GMGN token intelligence through exact-locked CLI | `GMGN_API_KEY` | Enabled when key exists |
+| Post-alert measurement | Birdeye then GMGN price | Either provider key | Enabled when a key exists |
 | Delivery | Telegram Bot `sendMessage` | Bot token and allowed chat ID | Existing optional path |
+
+Birdeye and GMGN are supplemental. Their values are kept provider-labeled and
+are not averaged into invented consensus. The alert prefers Birdeye for market
+fields when both are available and keeps GMGN-specific smart-money, KOL, and
+bundler labels explicit. Neither provider changes the narrative score or grants
+trading authority.
 
 The complete assessment—including deferred Google Trends, TikTok, Reddit,
 Santiment, YouTube, Bitquery, and Dune candidates, plus rejected undocumented
@@ -110,6 +127,7 @@ issues, pull requests, screenshots, and chat.
 
 ```dotenv
 NARRATIVE_RADAR_ENABLED=true
+GENERIC_OPPORTUNITY_ALERTS_ENABLED=false
 X_BEARER_TOKEN=
 LUNARCRUSH_API_KEY=
 NEWSAPI_KEY=
@@ -119,9 +137,24 @@ NARRATIVE_X_RECENT_SEARCH_ENABLED=false
 NARRATIVE_GDELT_ENABLED=false
 NARRATIVE_X_WOEIDS=1
 NARRATIVE_NEWS_COUNTRIES=us
-NARRATIVE_POLL_INTERVAL_MS=60000
+NARRATIVE_POLL_INTERVAL_MS=1200000
 NARRATIVE_CONFIRMATION_MAX_TERMS=3
 NARRATIVE_ALERT_MIN_PRIORITY=70
+LUNARCRUSH_DAILY_REQUEST_LIMIT=100
+LUNARCRUSH_DAILY_REQUEST_RESERVE=10
+NEWSAPI_DAILY_REQUEST_LIMIT=100
+NEWSAPI_DAILY_REQUEST_RESERVE=10
+
+BIRDEYE_API_KEY=
+GMGN_API_KEY=
+CANDIDATE_PROVIDER_TIMEOUT_MS=6000
+BIRDEYE_DAILY_REQUEST_LIMIT=100
+BIRDEYE_DAILY_REQUEST_RESERVE=10
+GMGN_DAILY_REQUEST_LIMIT=50
+GMGN_DAILY_REQUEST_RESERVE=5
+NARRATIVE_OUTCOME_TRACKING_ENABLED=true
+NARRATIVE_OUTCOME_NOTIFICATIONS_ENABLED=true
+NARRATIVE_OUTCOME_CHECKPOINTS_MS=60000,300000,900000,3600000
 ```
 
 At least one of X, LunarCrush, NewsAPI, or an approved RSS feed is required when
@@ -129,6 +162,17 @@ the radar is enabled. The recent-search and GDELT switches add targeted calls fo
 only the top configured number of terms. Review provider costs and quotas before
 enabling them. NewsAPI top-headline discovery requires one to five explicit ISO
 alpha-2 country codes and defaults to `us`.
+
+The provider limits are conservative safety ceilings, not claims about the
+account's purchased plan. LunarCrush and NewsAPI count each actual HTTP request;
+multiple NewsAPI countries therefore spend multiple calls per tick. All four
+provider counters, exponential failure backoff, and `429` `Retry-After` deadlines
+are persisted beside the observation ledger,
+and attention adapters also back off for a day after `401`/`403` plan or key
+rejection. Reserved calls remain unavailable to routine collection so the
+process fails quiet before consuming the entire configured allowance. The
+outcome tracker auto-enables when either candidate-provider key exists; setting
+it explicitly to `true` is shown above for clarity.
 
 Run without outbound alerts to validate collection and inspect the ledger:
 
@@ -143,15 +187,16 @@ Run with the existing Telegram Bot channel after both Bot values are configured:
 npm run observe:run:local -- --notify
 ```
 
-Manual read-only credential checks are available as `npm run verify:x:local`,
+Manual read-only credential checks include `npm run verify:birdeye:local`,
+`npm run verify:gmgn:local`, `npm run verify:x:local`,
 `npm run verify:lunarcrush:local`, and `npm run verify:newsapi:local`. The GitHub
 workflow has equivalent owner-triggered checks. GitHub repository secrets do
 not automatically become deployment-host secrets.
 
 ## Operational limitations
 
-- The index and alert dedupe are in memory; restarts preserve ledger evidence but
-  rebuild live clustering from new samples.
+- The index and alert dedupe are in memory; restarts preserve ledger evidence and
+  pending outcome checkpoints but rebuild live clustering from new samples.
 - The JSONL ledger is not a transactional database or a complete market archive.
 - Helius reconnect gaps are recorded but not yet backfilled.
 - Metadata or provider lag can miss a just-created mint. Failure is recorded,
@@ -160,6 +205,10 @@ not automatically become deployment-host secrets.
 - RSS XML handling is deliberately small and bounded; only operator-approved
   HTTPS feeds should be configured.
 - No unauthenticated public `/top` endpoint is exposed.
+- Outcome percentages are point-to-point token-price observations, not simulated
+  or realized P&L. They exclude fees, price impact, slippage, latency, failed
+  exits, and liquidity changes. One appreciating token does not validate the
+  strategy; the ledger exists so many chronological alerts can be evaluated.
 - Social manipulation, bought engagement, repeated syndicated headlines, and
   token copycats remain adversarial inputs. The alert is a prompt for research.
 
@@ -180,3 +229,6 @@ not automatically become deployment-host secrets.
 - [Helius DAS `getAsset`](https://www.helius.dev/docs/api-reference/das/getasset)
 - [DexScreener API reference](https://docs.dexscreener.com/api/reference)
 - [Telegram Bot `sendMessage`](https://core.telegram.org/bots/api#sendmessage)
+- [Birdeye authentication](https://data.birdeye.so/docs/authentication)
+- [Birdeye rate limiting](https://data.birdeye.so/docs/guides/api-access/rate-limiting)
+- [GMGN official skills and CLI](https://github.com/GMGNAI/gmgn-skills)
