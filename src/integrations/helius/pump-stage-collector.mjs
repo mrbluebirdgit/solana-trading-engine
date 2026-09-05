@@ -14,10 +14,13 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "../pump/program-ids.mjs";
 import { decodePublicKey } from "../solana/base58.mjs";
-import { decodeSplMintAccount } from "../solana/spl-mint.mjs";
+import {
+  decodeSplMintAccount,
+  inspectToken2022MintExtensions,
+} from "../solana/spl-mint.mjs";
 import { heliusRpcRequest } from "./rpc.mjs";
 
-const COLLECTOR_VERSION = "helius-pump-stage-collector.v1";
+const COLLECTOR_VERSION = "helius-pump-stage-collector.v2";
 
 function accountFromRpc(value) {
   if (!value) {
@@ -160,6 +163,11 @@ export async function collectPumpStageFromHelius(
   }
 
   const authorities = decodeSplMintAccount(mintAccount.data);
+  const token2022Inspection = mintAccount.ownerProgramId === TOKEN_2022_PROGRAM_ID
+    ? inspectToken2022MintExtensions(mintAccount.data, {
+        expectedMintBytes: decodePublicKey(mint, "mint"),
+      })
+    : null;
   if (collectorAbstentionReason === null && !mintAccount.exists) {
     collectorAbstentionReason = "mint_account_absent";
   } else if (collectorAbstentionReason === null &&
@@ -171,9 +179,10 @@ export async function collectPumpStageFromHelius(
     collectorAbstentionReason = "mint_account_uninitialized_or_truncated";
   } else if (
     collectorAbstentionReason === null &&
-    mintAccount.ownerProgramId === TOKEN_2022_PROGRAM_ID
+    token2022Inspection &&
+    token2022Inspection.safe !== true
   ) {
-    collectorAbstentionReason = "token_2022_extensions_uninspected";
+    collectorAbstentionReason = token2022Inspection.reason;
   }
 
   let decodedPool = null;
@@ -245,6 +254,8 @@ export async function collectPumpStageFromHelius(
       canonicalPool: pool.address,
       quoteMint: pool.quoteMint,
     }),
+    mintProgramId: mintAccount.ownerProgramId ?? null,
+    token2022Extensions: token2022Inspection?.extensions ?? Object.freeze([]),
     ...resolved,
   });
 }

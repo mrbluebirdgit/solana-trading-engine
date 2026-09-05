@@ -1,3 +1,4 @@
+import { parseObserverRuntime } from "../../config/observer-runtime.mjs";
 import { deliverTelegramBotAlert } from "../../integrations/alerts/deliver.mjs";
 import { checkBirdeyeReadAccess } from "../../integrations/birdeye/read-health.mjs";
 import { checkGmgnReadAccess } from "../../integrations/gmgn/read-health.mjs";
@@ -7,6 +8,33 @@ import { requestJupiterQuote } from "../../integrations/jupiter/quote.mjs";
 import { NATIVE_SOL_MINT } from "../../integrations/pump/program-ids.mjs";
 
 const MAINNET_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
+export async function verifyObserverDeployment(
+  {
+    env = process.env,
+    argv = ["--notify"],
+    cwd = process.cwd(),
+  } = {},
+  dependencies = {},
+) {
+  const config = parseObserverRuntime({ env, argv, cwd });
+  const result = await verifyObserverLive({
+    heliusApiKey: config.heliusApiKey,
+    jupiterApiKey: config.jupiterApiKey,
+    telegramBotToken: config.telegramBotToken,
+    telegramChatId: config.telegramChatId,
+    birdeyeApiKey: config.birdeyeApiKey,
+    gmgnApiKey: config.gmgnApiKey,
+    solscanApiKey: config.solscanApiKey,
+  }, dependencies);
+
+  return Object.freeze({
+    ...result,
+    runtimeConfiguration: "validated",
+    narrativeRadarEnabled: config.narrativeRadarEnabled,
+    genericOpportunityAlertsEnabled: config.genericOpportunityAlertsEnabled,
+  });
+}
 
 export async function verifyObserverLive(
   {

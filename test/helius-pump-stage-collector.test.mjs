@@ -15,6 +15,7 @@ import {
   NATIVE_SOL_MINT,
   PUMPSWAP_POOL_DISCRIMINATOR,
   PUMP_IDL_REFERENCE_COMMIT,
+  TOKEN_2022_PROGRAM_ID,
 } from "../src/integrations/pump/program-ids.mjs";
 import { findProgramAddress } from "../src/integrations/solana/pda.mjs";
 import { decodePublicKey } from "../src/integrations/solana/base58.mjs";
@@ -44,6 +45,22 @@ function mintAccountData({ mintActive = true, freezeActive = false } = {}) {
   bytes[46] = freezeActive ? 1 : 0;
   bytes[44] = 6;
   bytes[45] = 1;
+  return Buffer.from(bytes).toString("base64");
+}
+
+function token2022MintAccountData({ extensionType = 18 } = {}) {
+  const valueLength = extensionType === 19 ? 80 : 64;
+  const bytes = new Uint8Array(166 + 4 + valueLength);
+  bytes[44] = 6;
+  bytes[45] = 1;
+  bytes[165] = 1;
+  new DataView(bytes.buffer).setUint16(166, extensionType, true);
+  new DataView(bytes.buffer).setUint16(168, valueLength, true);
+  if (extensionType === 18) {
+    bytes.set(decodePublicKey(MINT), 170 + 32);
+  } else if (extensionType === 19) {
+    bytes.set(decodePublicKey(MINT), 170 + 32);
+  }
   return Buffer.from(bytes).toString("base64");
 }
 
@@ -104,6 +121,34 @@ test("collects pump_curve_active from mocked Helius accounts", async () => {
   assert.equal(observation.freezeAuthority, "renounced");
   assert.equal(observation.runtimeAuthority, false);
   assert.equal(observation.canonicalPoolPresent, false);
+});
+
+test("collects Token-2022 mints when every extension is transfer-neutral", async () => {
+  const observation = await collectPumpStageFromHelius(API_KEY, MINT, {
+    fetchImpl: async () => rpcResult([
+      { owner: TOKEN_2022_PROGRAM_ID, data: [token2022MintAccountData(), "base64"] },
+      { owner: PUMP_PROGRAM_ID, data: [curveAccountData({ complete: false }), "base64"] },
+      null,
+    ]),
+  });
+
+  assert.equal(observation.venueStage, "pump_curve_active");
+  assert.equal(observation.abstentionReason, null);
+  assert.deepEqual(observation.token2022Extensions, ["metadata_pointer"]);
+  assert.equal(observation.collectorVersion, "helius-pump-stage-collector.v2");
+});
+
+test("abstains with a specific reason for a transfer-affecting Token-2022 extension", async () => {
+  const observation = await collectPumpStageFromHelius(API_KEY, MINT, {
+    fetchImpl: async () => rpcResult([
+      { owner: TOKEN_2022_PROGRAM_ID, data: [token2022MintAccountData({ extensionType: 14 }), "base64"] },
+      { owner: PUMP_PROGRAM_ID, data: [curveAccountData({ complete: false }), "base64"] },
+      null,
+    ]),
+  });
+
+  assert.equal(observation.venueStage, "unknown");
+  assert.equal(observation.abstentionReason, "token_2022_transfer_hook");
 });
 
 test("collects migration_pending when the curve is complete and the pool is absent", async () => {

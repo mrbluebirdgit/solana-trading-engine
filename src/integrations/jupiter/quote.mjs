@@ -18,6 +18,12 @@ const CANDIDATE_ROUTE_CODES = new Set([
   "TOKEN_NOT_TRADABLE",
 ]);
 
+const CANDIDATE_ROUTE_MESSAGES = [
+  /^failed to get quotes?[.!]?$/i,
+  /^no routes? found(?:[.: ].*)?$/i,
+  /^could not find any route(?:[.: ].*)?$/i,
+];
+
 function structuredErrorCode(payload) {
   for (const value of [payload?.errorCode, payload?.code]) {
     if (typeof value === "string" && CANDIDATE_ROUTE_CODES.has(value)) {
@@ -27,14 +33,22 @@ function structuredErrorCode(payload) {
   return null;
 }
 
-function httpQuoteError(status, payload) {
-  const routeCode = structuredErrorCode(payload);
-  if (routeCode) {
-    return new JupiterQuoteError("Jupiter has no route for the requested token and size", {
-      code: "route_unavailable",
-      scope: "candidate",
-    });
+function structuredErrorMessage(payload) {
+  for (const value of [payload?.error, payload?.errorMessage, payload?.message]) {
+    if (typeof value !== "string") continue;
+    const normalized = value.trim();
+    if (CANDIDATE_ROUTE_MESSAGES.some((pattern) => pattern.test(normalized))) {
+      return normalized;
+    }
   }
+  return null;
+}
+
+function routeUnavailable(payload) {
+  return Boolean(structuredErrorCode(payload) || structuredErrorMessage(payload));
+}
+
+function httpQuoteError(status, payload) {
   if (status === 401 || status === 403) {
     return new JupiterQuoteError("Jupiter rejected the API key", {
       code: "authentication_failed",
@@ -43,6 +57,13 @@ function httpQuoteError(status, payload) {
   if (status === 429) {
     return new JupiterQuoteError("Jupiter quote rate limit reached", {
       code: "rate_limited",
+      retryable: true,
+    });
+  }
+  if (status === 400 && routeUnavailable(payload)) {
+    return new JupiterQuoteError("Jupiter has no route yet for the requested token and size", {
+      code: "route_unavailable",
+      scope: "candidate",
       retryable: true,
     });
   }
@@ -181,11 +202,12 @@ export async function requestJupiterQuote(
       code: "invalid_response",
     });
   }
-  const responseRouteError = structuredErrorCode(payload);
+  const responseRouteError = routeUnavailable(payload);
   if (responseRouteError) {
-    throw new JupiterQuoteError("Jupiter has no route for the requested token and size", {
+    throw new JupiterQuoteError("Jupiter has no route yet for the requested token and size", {
       code: "route_unavailable",
       scope: "candidate",
+      retryable: true,
     });
   }
   if (
