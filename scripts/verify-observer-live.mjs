@@ -1,19 +1,11 @@
 #!/usr/bin/env node
 
-import { verifyObserverLive } from "../src/core/runtime/observer-preflight.mjs";
+import { verifyObserverDeployment } from "../src/core/runtime/observer-preflight.mjs";
 
 try {
-  const result = await verifyObserverLive({
-    heliusApiKey: process.env.HELIUS_API_KEY,
-    jupiterApiKey: process.env.JUPITER_API_KEY,
-    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
-    telegramChatId: process.env.TELEGRAM_ALLOWED_CHAT_ID,
-    birdeyeApiKey: process.env.BIRDEYE_API_KEY,
-    gmgnApiKey: process.env.GMGN_API_KEY,
-    solscanApiKey: process.env.SOLSCAN_API_KEY,
-  });
+  const result = await verifyObserverDeployment();
   console.log(
-    `[OK] observer preflight passed; Helius=${result.heliusSubscription}; supplemental=${result.supplementalProviders.join(",") || "none"}; Telegram message=${result.telegramMessageId ?? "acknowledged"}; runtimeAuthority=false`,
+    `[OK] observer preflight passed; configuration=${result.runtimeConfiguration}; Helius=${result.heliusSubscription}; supplemental=${result.supplementalProviders.join(",") || "none"}; Telegram message=${result.telegramMessageId ?? "acknowledged"}; runtimeAuthority=false`,
   );
 } catch (error) {
   console.error(`[FAIL] ${error instanceof Error ? error.message : "observer preflight failed"}`);

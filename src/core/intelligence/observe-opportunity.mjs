@@ -12,7 +12,6 @@ const CANDIDATE_REJECTION_REASONS = new Set([
 
 const CANDIDATE_STAGE_ABSTENTIONS = new Set([
   "complete_false_with_canonical_pool",
-  "token_2022_extensions_uninspected",
 ]);
 
 const RETRYABLE_STAGE_ABSTENTIONS = new Set([
@@ -24,7 +23,10 @@ const RETRYABLE_STAGE_ABSTENTIONS = new Set([
 
 function stageScope(reason) {
   if (!reason) return null;
-  return CANDIDATE_STAGE_ABSTENTIONS.has(reason) ? "candidate" : "provider";
+  return CANDIDATE_STAGE_ABSTENTIONS.has(reason) ||
+    (typeof reason === "string" && reason.startsWith("token_2022_"))
+    ? "candidate"
+    : "provider";
 }
 
 function classifyOutcome({ stageErrorScope, quoteErrorScope, decision }) {

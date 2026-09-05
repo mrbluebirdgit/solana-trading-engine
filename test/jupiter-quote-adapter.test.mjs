@@ -117,7 +117,78 @@ test("classifies a missing route as a candidate abstention", async () => {
     ),
     (error) =>
       error.code === "route_unavailable" &&
-      error.scope === "candidate",
+      error.scope === "candidate" &&
+      error.retryable === true,
+  );
+});
+
+test("classifies Jupiter's documented quote-only 400 response as retryable", async () => {
+  await assert.rejects(
+    requestJupiterQuote(
+      {
+        apiKey: "jupiter_api_key_for_testing",
+        inputMint: SOL_MINT,
+        outputMint: USDC_MINT,
+        amountAtomic: "10000000",
+      },
+      {
+        fetchImpl: async () => ({
+          ok: false,
+          status: 400,
+          json: async () => ({ error: "Failed to get quotes" }),
+        }),
+      },
+    ),
+    (error) =>
+      error.code === "route_unavailable" &&
+      error.scope === "candidate" &&
+      error.retryable === true,
+  );
+});
+
+test("keeps unrelated HTTP 400 responses scoped to the provider", async () => {
+  await assert.rejects(
+    requestJupiterQuote(
+      {
+        apiKey: "jupiter_api_key_for_testing",
+        inputMint: SOL_MINT,
+        outputMint: USDC_MINT,
+        amountAtomic: "10000000",
+      },
+      {
+        fetchImpl: async () => ({
+          ok: false,
+          status: 400,
+          json: async () => ({ error: "invalid amount" }),
+        }),
+      },
+    ),
+    (error) =>
+      error.code === "http_error" &&
+      error.scope === "provider" &&
+      error.retryable === false,
+  );
+});
+
+test("authentication status takes precedence over route-like error text", async () => {
+  await assert.rejects(
+    requestJupiterQuote(
+      {
+        apiKey: "jupiter_api_key_for_testing",
+        inputMint: SOL_MINT,
+        outputMint: USDC_MINT,
+        amountAtomic: "10000000",
+      },
+      {
+        fetchImpl: async () => ({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: "Failed to get quotes" }),
+        }),
+      },
+    ),
+    (error) =>
+      error.code === "authentication_failed" && error.scope === "provider",
   );
 });
 

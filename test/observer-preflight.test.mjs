@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { verifyObserverLive } from "../src/core/runtime/observer-preflight.mjs";
+import {
+  verifyObserverDeployment,
+  verifyObserverLive,
+} from "../src/core/runtime/observer-preflight.mjs";
 
 const credentials = Object.freeze({
   heliusApiKey: "helius-secret",
@@ -72,4 +75,70 @@ test("verifies configured Birdeye, GMGN, and Solscan read access before sending 
   ]);
   assert.match(body, /Birdeye \+ GMGN \+ Solscan read access/);
   assert.deepEqual(result.supplementalProviders, ["Birdeye", "GMGN", "Solscan"]);
+});
+
+test("validates the complete startup configuration before making network calls", async () => {
+  let networkCalls = 0;
+  const dependencies = {
+    runObserverImpl: async () => { networkCalls += 1; },
+    requestQuoteImpl: async () => { networkCalls += 1; },
+    deliverTelegramImpl: async () => { networkCalls += 1; },
+  };
+
+  await assert.rejects(
+    verifyObserverDeployment({
+      env: {
+        HELIUS_API_KEY: "helius-secret",
+        JUPITER_API_KEY: "jupiter-secret",
+        TELEGRAM_BOT_TOKEN: "telegram-secret",
+        TELEGRAM_ALLOWED_CHAT_ID: "42",
+        NODE_ENV: "production",
+        TRADING_MODE: "observe",
+        LIVE_TRADING_ENABLED: "false",
+        NARRATIVE_RADAR_ENABLED: "true",
+        LUNARCRUSH_API_KEY: "lunar-key",
+        LUNARCRUSH_PLAN: "hobby",
+      },
+    }, dependencies),
+    /NARRATIVE_RADAR_ENABLED requires/,
+  );
+  assert.equal(networkCalls, 0);
+});
+
+test("uses normalized runtime credentials for the live deployment checks", async () => {
+  let quoteKey;
+  let telegramToken;
+  const result = await verifyObserverDeployment({
+    env: {
+      HELIUS_API_KEY: " helius-secret ",
+      JUPITER_API_KEY: " jupiter-secret ",
+      TELEGRAM_BOT_TOKEN: " telegram-secret ",
+      TELEGRAM_ALLOWED_CHAT_ID: " 42 ",
+      NODE_ENV: "production",
+      TRADING_MODE: "observe",
+      LIVE_TRADING_ENABLED: "false",
+      NARRATIVE_RADAR_ENABLED: "false",
+    },
+    cwd: "/var/lib/solana-observer",
+  }, {
+    runObserverImpl: async ({ apiKey, onStatus }) => {
+      assert.equal(apiKey, "helius-secret");
+      queueMicrotask(() => onStatus({ state: "subscribed", subscriptionId: 7 }));
+      return { stop: () => {} };
+    },
+    requestQuoteImpl: async ({ apiKey }) => {
+      quoteKey = apiKey;
+      return { providerQuoteId: "quote-1" };
+    },
+    deliverTelegramImpl: async ({ botToken }) => {
+      telegramToken = botToken;
+      return { messageId: 11 };
+    },
+  });
+
+  assert.equal(quoteKey, "jupiter-secret");
+  assert.equal(telegramToken, "telegram-secret");
+  assert.equal(result.runtimeConfiguration, "validated");
+  assert.equal(result.narrativeRadarEnabled, false);
+  assert.equal(result.runtimeAuthority, false);
 });
