@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "trading-floor-roles.v1",
+  "roles": [
+    {
+      "name": "SCOUT",
+      "oneLine": "SCOUT — launch leads (mint + source + UTC); no risk/size/buy"
+    },
+    {
+      "name": "RISK",
+      "oneLine": "RISK — fail-closed CLEAR/CONDITIONAL/KILL before any ticket"
+    },
+    {
+      "name": "WHALE",
+      "oneLine": "WHALE — holder/flow context after RISK; never authorize"
+    },
+    {
+      "name": "SHILL",
+      "oneLine": "SHILL — social scores 0–1; never clear risk or size"
+    },
+    {
+      "name": "SNIPER",
+      "oneLine": "SNIPER — sole buy sender after RISK + exact human approval"
+    },
+    {
+      "name": "RUG",
+      "oneLine": "RUG — post-fill alerts only; never sell"
+    },
+    {
+      "name": "EXIT",
+      "oneLine": "EXIT — sole sell sender after exact human approval"
+    },
+    {
+      "name": "THE LAWYER",
+      "oneLine": "THE LAWYER — audits performance, adapts ranking inside the fixed desk law, and submits evidence-backed change recommendations to CHIEF OF STAFF and CHIEF; never alters the desk law, clears RISK, sizes, buys, or sells"
+    }
+  ],
+  "lawyer": {
+    "automaticAdjustmentScope": [
+      "curve_ranking_weights",
+      "migrated_ranking_weights"
+    ],
+    "recommendationRecipients": [
+      "CHIEF OF STAFF",
+      "CHIEF"
+    ],
+    "recommendationOnly": [
+      "desk_filter_thresholds",
+      "risk_caps",
+      "terminal_slippage",
+      "terminal_size",
+      "priority_fee",
+      "jito_tip"
+    ],
+    "prohibitedActions": [
+      "mutate_desk_law",
+      "clear_risk",
+      "authorize_ticket",
+      "size_order",
+      "buy",
+      "sell"
+    ],
+    "runtimeAuthority": false
+  }
+}

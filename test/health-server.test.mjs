@@ -92,6 +92,30 @@ test("readiness exposes and fails closed when an enabled narrative radar is unhe
   assert.equal(invoke("/readyz", { ...base, narrativeHealthy: true }).statusCode, 200);
 });
 
+test("readiness fails closed when the desk evidence or THE LAWYER is unhealthy", () => {
+  const base = {
+    observerState: "subscribed",
+    stopping: false,
+    storageHealthy: true,
+    notificationHealthy: true,
+    providerHealthy: true,
+    ingestionHealthy: true,
+    enrichmentHealthy: true,
+    narrativeHealthy: true,
+    queueSaturated: false,
+  };
+  assert.equal(invoke("/readyz", { ...base, deskHealthy: false }).statusCode, 503);
+  assert.equal(invoke("/readyz", { ...base, lawyerHealthy: false }).statusCode, 503);
+  const response = invoke("/readyz", {
+    ...base,
+    deskHealthy: true,
+    lawyerHealthy: true,
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.deskHealthy, true);
+  assert.equal(response.body.lawyerHealthy, true);
+});
+
 test("readiness latches closed after a Pump mint misses narrative enrichment", () => {
   const base = {
     observerState: "subscribed",

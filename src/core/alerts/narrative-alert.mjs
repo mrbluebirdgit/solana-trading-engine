@@ -19,6 +19,10 @@ function share(value) {
   return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : "unknown";
 }
 
+function percent(value) {
+  return Number.isFinite(value) ? `${value.toFixed(2)}%` : "unknown";
+}
+
 function booleanEvidence(value) {
   return typeof value === "boolean" ? (value ? "yes" : "NO") : "unknown";
 }
@@ -31,7 +35,12 @@ function providerLine(evidence, provider) {
   return `${provider}: ${result.capabilities.join(", ") || "connected"}${partial}`;
 }
 
-export function formatNarrativeAlert(match, evidence = null) {
+export function formatNarrativeAlert(
+  match,
+  evidence = null,
+  deskAssessment = null,
+  lawyerRanking = null,
+) {
   if (
     match?.runtimeAuthority !== false ||
     match?.narrative?.runtimeAuthority !== false ||
@@ -61,6 +70,21 @@ export function formatNarrativeAlert(match, evidence = null) {
     providerLine(evidence, "gmgn"),
     providerLine(evidence, "solscan"),
   ] : [];
+  const desk = deskAssessment?.decision?.decision === "SCOUT_PASS" ? [
+    `desk law: RISK CLEAR · SCOUT PASS · ${deskAssessment.decision.stage}`,
+    `risk % dev/insider/bundle/fresh/sniper/rug/phishing: ${[
+      deskAssessment.metrics.developerPercent,
+      deskAssessment.metrics.insiderPercent,
+      deskAssessment.metrics.bundledPercent,
+      deskAssessment.metrics.freshPercent,
+      deskAssessment.metrics.snipersPercent,
+      deskAssessment.metrics.rugPercent,
+      deskAssessment.metrics.phishingPercent,
+    ].map(percent).join(" / ")}`,
+  ] : [];
+  const ranking = lawyerRanking ? [
+    `THE LAWYER rank: ${lawyerRanking.rankScore.toFixed(1)}/100 (${lawyerRanking.modelOutcomes} learned outcomes; ranking only)`,
+  ] : [];
   return Object.freeze({
     title: `NARRATIVE ${shortMint(mint)} · ${narrative.label}`,
     body: [
@@ -74,6 +98,8 @@ export function formatNarrativeAlert(match, evidence = null) {
       `observed matching mints/15m: ${match.competingMintCount}`,
       `token: ${mintCandidate.name ?? "unknown"} (${mintCandidate.symbol ?? "unknown"})`,
       `stage: ${mintCandidate.venueStage ?? "unknown"}`,
+      ...desk,
+      ...ranking,
       ...providerEvidence,
       `image: ${mintCandidate.imageUrl ? "yes" : "unknown"}`,
       `attached socials: ${mintCandidate.socialLinks.length}`,

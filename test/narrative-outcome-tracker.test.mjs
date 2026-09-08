@@ -132,3 +132,47 @@ test("records that outcome tracking cannot start without an alert-time price", a
   assert.equal(tracker.snapshot().pendingCheckpoints, 0);
   await tracker.stop();
 });
+
+test("feeds the persisted candidate id and 15-minute result to THE LAWYER", async () => {
+  let now = new Date("2026-09-05T12:00:00.000Z");
+  const learned = [];
+  const store = memoryStore();
+  const timer = fakeTimer();
+  const tracker = createNarrativeOutcomeTracker({
+    statePath: "/tmp/not-used.json",
+    checkpointsMs: [900_000],
+    readPrice: async () => ({
+      provider: "gmgn",
+      priceUsd: 0.00125,
+      observedAt: now.toISOString(),
+    }),
+    append: async () => {},
+    notify: false,
+    onOutcome: async (outcome) => {
+      learned.push(outcome);
+      return { learned: true };
+    },
+    clock: () => now,
+    setTimeoutImpl: timer.set,
+    clearTimeoutImpl: timer.clear,
+    createStoreImpl: store.factory,
+  });
+  await tracker.start();
+  await tracker.track({
+    mint: "MintLawyer",
+    narrativeLabel: "Example",
+    alertedAt: now.toISOString(),
+    initialPriceUsd: 0.001,
+    initialPriceProvider: "gmgn",
+    learningCandidateId: "candidate-1",
+  });
+  assert.equal(store.value().entries[0].learningCandidateId, "candidate-1");
+  now = new Date("2026-09-05T12:15:00.000Z");
+  await tracker.tick();
+  assert.equal(learned.length, 1);
+  assert.equal(learned[0].candidateId, "candidate-1");
+  assert.equal(learned[0].horizonMs, 900_000);
+  assert.equal(learned[0].returnPercent, 25);
+  assert.equal(tracker.snapshot().learnedOutcomes, 1);
+  await tracker.stop();
+});

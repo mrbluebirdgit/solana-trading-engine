@@ -40,6 +40,8 @@ export function createHealthHandler({ getState, now = () => new Date() } = {}) {
         state.enrichmentHealthy === true &&
         state.narrativeHealthy !== false &&
         state.narrativeMintHealthy !== false &&
+        state.deskHealthy !== false &&
+        state.lawyerHealthy !== false &&
         state.queueSaturated === false;
       json(response, ready ? 200 : 503, {
         ...base,
@@ -69,6 +71,12 @@ export function createHealthHandler({ getState, now = () => new Date() } = {}) {
           state.narrativeProviderEnrichment ?? null,
         narrativeOutcomeTracking:
           state.narrativeOutcomeTracking ?? null,
+        deskPasses: state.deskPasses ?? 0,
+        deskSkips: state.deskSkips ?? 0,
+        riskKills: state.riskKills ?? 0,
+        theLawyer: state.theLawyer ?? null,
+        deskHealthy: state.deskHealthy ?? null,
+        lawyerHealthy: state.lawyerHealthy ?? null,
         narrativeAttentionBudgets:
           state.narrativeAttentionBudgets ?? null,
         narrativeFailedMints: state.narrativeFailedMints ?? 0,

@@ -29,6 +29,7 @@ test("parses a live-locked observe-only runtime", () => {
   assert.equal(result.newsApiPlan, "developer");
   assert.equal(result.newsApiDiscoveryEnabled, false);
   assert.equal(result.narrativeOutcomeTrackingEnabled, false);
+  assert.equal(result.deskScoutEnabled, false);
   assert.equal(result.lunarCrushDailyRequestLimit, 100);
   assert.equal(result.lunarCrushDailyRequestReserve, 10);
   assert.equal(result.newsApiDailyRequestLimit, 100);
@@ -141,6 +142,37 @@ test("enables narrative discovery only with an explicitly configured source", ()
   );
 });
 
+test("enables the locked desk scout only with narrative discovery and read-only GMGN", () => {
+  const parsed = parseObserverRuntime({
+    env: {
+      ...required,
+      NARRATIVE_RADAR_ENABLED: "true",
+      X_BEARER_TOKEN: "x-token",
+      GMGN_API_KEY: "gmgn-read-key",
+    },
+    cwd: "/var/lib/observer",
+  });
+  assert.equal(parsed.deskScoutEnabled, true);
+  assert.equal(parsed.theLawyerStatePath, "/var/lib/observer/data/the-lawyer.v1.json");
+  assert.throws(
+    () => parseObserverRuntime({
+      env: {
+        ...required,
+        NARRATIVE_RADAR_ENABLED: "true",
+        X_BEARER_TOKEN: "x-token",
+        DESK_SCOUT_ENABLED: "true",
+      },
+    }),
+    /requires GMGN_API_KEY/,
+  );
+  assert.throws(
+    () => parseObserverRuntime({
+      env: { ...required, DESK_SCOUT_ENABLED: "true", GMGN_API_KEY: "gmgn" },
+    }),
+    /requires NARRATIVE_RADAR_ENABLED/,
+  );
+});
+
 test("disables plan-ineligible production discovery sources", () => {
   assert.throws(
     () => parseObserverRuntime({
@@ -205,6 +237,20 @@ test("rejects unsafe narrative runtime controls", () => {
     }),
     /HTTPS/,
   );
+});
+
+test("rejects forbidden signing and terminal credentials", () => {
+  for (const field of [
+    "AGE_SECRET_KEY",
+    "WALLET_PRIVATE_KEY",
+    "AXIOM_API_KEY",
+    "PHOTON_API_KEY",
+  ]) {
+    assert.throws(
+      () => parseObserverRuntime({ env: { ...required, [field]: "must-not-load" } }),
+      new RegExp(`${field} must not be configured`),
+    );
+  }
 });
 
 test("validates the real-time trigger age bound", () => {

@@ -234,6 +234,7 @@ test("starts one integrated narrative radar and forwards resolved Pump mints", a
     mint: "mint-1",
     eventSlot: 44,
     venueStage: "pump_curve_active",
+    stageEvidence: { mint: "mint-1", venueStage: "pump_curve_active" },
     observedAt: "2026-09-04T12:00:00.000Z",
   }]);
   assert.equal(worker.state().narrativeHealthy, true);

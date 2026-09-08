@@ -77,6 +77,7 @@ GitHub Actions secrets are not automatically available to a deployment host.
 | `GENERIC_OPPORTUNITY_ALERTS_ENABLED` | No | Broad stage/quote alerts; defaults off in narrative mode to prevent duplicate alert traffic |
 | `BIRDEYE_API_KEY` | No | Candidate-triggered token overview, security, and price evidence |
 | `GMGN_API_KEY` | No | Candidate-triggered token intelligence and price evidence; never signing |
+| `DESK_SCOUT_ENABLED` | No | Locked desk gate plus THE LAWYER ranking; defaults on when narrative radar and GMGN are both configured |
 | `SOLSCAN_API_KEY` | No | Candidate-triggered metadata, holders, authority, and fallback price evidence |
 | `CANDIDATE_PROVIDER_TIMEOUT_MS` | No | Maximum bounded enrichment wait; defaults to `6000` ms |
 | `BIRDEYE_DAILY_REQUEST_LIMIT` | No | Conservative configured ceiling; defaults to `100` |

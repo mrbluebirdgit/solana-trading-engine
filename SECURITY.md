@@ -11,6 +11,7 @@
 7. Treat `BIRDEYE_API_KEY`, `GMGN_API_KEY`, `X_BEARER_TOKEN`, `LUNARCRUSH_API_KEY`, and `NEWSAPI_KEY` as read-only data credentials. They may be used only by trusted-branch or manually dispatched verification workflows and never by pull-request code.
 8. Do not expose secrets in workflow inputs, command-line arguments, error messages, screenshots, issues, pull requests, or logs.
 9. Rotate a credential immediately if its value is exposed.
+10. The observer rejects wallet signing material, `AGE_SECRET_KEY`, and Axiom or Photon API variables; those terminals remain operator-managed.
 
 ## Workflow rules
 

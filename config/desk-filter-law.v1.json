@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "lawVersion": "desk-filter-law.v1",
+  "runtimeMutable": false,
+  "decisions": ["RISK_KILL", "SCOUT_SKIP", "SCOUT_PASS"],
+  "authority": {
+    "mintAuthorityExists": "RISK_KILL",
+    "freezeAuthorityExists": "RISK_KILL",
+    "unknownAuthority": "SCOUT_SKIP"
+  },
+  "riskCapsPercent": {
+    "developer": 5,
+    "insider": 10,
+    "bundled": 15,
+    "fresh": 30,
+    "snipers": 20,
+    "rug": 1,
+    "phishing": 0
+  },
+  "ignoredFilters": [
+    "botTradingPercent",
+    "telegramCalls"
+  ],
+  "optionalFilters": [
+    "developerBurned"
+  ],
+  "stages": {
+    "curve": {
+      "smartMoneyMinimum": 1,
+      "holdersMinimum": 20,
+      "top10PercentMaximum": 25,
+      "marketCapUsdMinimum": 8000,
+      "marketCapUsdMaximum": 80000,
+      "volume5mUsdMinimum": 5000,
+      "netInflow5mUsdMinimum": 0,
+      "transactions5mMinimum": 40,
+      "curveFillPercentMinimum": 2,
+      "curveFillPercentMaximum": 18
+    },
+    "migrated": {
+      "smartMoneyMinimum": 2,
+      "holdersMinimum": 40,
+      "top10PercentMaximum": 22,
+      "marketCapUsdMinimum": 25000,
+      "marketCapUsdMaximum": 250000,
+      "volume5mUsdMinimum": 15000,
+      "netInflow5mUsdMinimum": 0,
+      "transactions5mMinimum": 80,
+      "migrationAgeMinutesMinimum": 0,
+      "migrationAgeMinutesMaximum": 12
+    }
+  },
+  "terminalEntry": {
+    "operatorManaged": true,
+    "learningBuySolMinimum": 0.05,
+    "learningBuySolMaximum": 0.15,
+    "riskClearedBuySolMinimum": 0.3,
+    "riskClearedBuySolMaximum": 0.5,
+    "slippagePercent": 15,
+    "priorityFeeSol": 0.006,
+    "jitoTipSol": 0.007,
+    "antiMev": true
+  },
+  "terminalSites": [
+    "https://axiom.trade",
+    "https://photon-sol.tinyastro.io",
+    "https://gmgn.ai"
+  ],
+  "forbiddenSecretInputs": [
+    "AGE_SECRET_KEY",
+    "WALLET_PRIVATE_KEY",
+    "AXIOM_API_KEY",
+    "PHOTON_API_KEY"
+  ]
+}

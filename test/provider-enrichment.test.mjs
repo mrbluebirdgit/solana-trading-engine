@@ -74,6 +74,11 @@ test("combines Birdeye market/security and GMGN wallet evidence without averagin
       }),
       capabilities: ["wallet_labels"],
       partialErrors: [],
+      deskMetrics: {
+        source: "gmgn",
+        metrics: { developerPercent: 3 },
+        runtimeAuthority: false,
+      },
     }),
     readSolscanCandidateImpl: async () => ({
       observation: observation("solscan", {
@@ -92,6 +97,7 @@ test("combines Birdeye market/security and GMGN wallet evidence without averagin
   assert.equal(result.market.smartMoneyProvider, "gmgn");
   assert.equal(result.market.mintAuthorityRenounced, true);
   assert.equal(result.market.rugRatioProvider, "gmgn");
+  assert.equal(result.deskMetrics.metrics.developerPercent, 3);
   assert.equal(result.providers.every((provider) => provider.runtimeAuthority === false), true);
   await enricher.stop();
 });

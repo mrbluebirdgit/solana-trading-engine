@@ -24,6 +24,7 @@ function providerResult(provider, result) {
       provider,
       ok: true,
       observation: result.value.observation,
+      deskMetrics: result.value.deskMetrics ?? null,
       capabilities: result.value.capabilities,
       partialErrors: result.value.partialErrors,
       error: null,
@@ -34,6 +35,7 @@ function providerResult(provider, result) {
     provider,
     ok: false,
     observation: null,
+    deskMetrics: null,
     capabilities: Object.freeze([]),
     partialErrors: Object.freeze([]),
     error: safeError(result.reason),
@@ -237,6 +239,9 @@ export function createCandidateProviderEnricher({
       mint: mint.trim(),
       providers: results,
       market: marketSummary(results),
+      deskMetrics:
+        results.find((result) => result.provider === "gmgn" && result.ok)
+          ?.deskMetrics ?? null,
       runtimeAuthority: false,
     });
   }

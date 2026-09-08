@@ -32,7 +32,10 @@ function validateLoaded(value, maximumEntries) {
       !Number.isFinite(entry.initialPriceUsd) ||
       entry.initialPriceUsd <= 0 ||
       !Array.isArray(entry.pendingCheckpointsMs) ||
-      entry.pendingCheckpointsMs.some((item) => !Number.isSafeInteger(item) || item < 1)
+      entry.pendingCheckpointsMs.some((item) => !Number.isSafeInteger(item) || item < 1) ||
+      (entry.learningCandidateId !== null &&
+        entry.learningCandidateId !== undefined &&
+        (typeof entry.learningCandidateId !== "string" || entry.learningCandidateId === ""))
     ) {
       throw new Error("narrative outcome entry is invalid");
     }
@@ -79,6 +82,7 @@ export function createNarrativeOutcomeTracker({
   createStoreImpl = createAtomicJsonStore,
   maximumEntries = 1_000,
   logger = console,
+  onOutcome = null,
 } = {}) {
   if (!Array.isArray(checkpointsMs) || checkpointsMs.length === 0) {
     throw new TypeError("outcome checkpoints are required");
@@ -88,6 +92,9 @@ export function createNarrativeOutcomeTracker({
   }
   if (notify && typeof deliver !== "function") {
     throw new TypeError("outcome delivery is required when notifications are enabled");
+  }
+  if (onOutcome !== null && typeof onOutcome !== "function") {
+    throw new TypeError("onOutcome must be a function or null");
   }
 
   const checkpoints = Object.freeze([...new Set(checkpointsMs)].sort((a, b) => a - b));
@@ -106,6 +113,8 @@ export function createNarrativeOutcomeTracker({
     trackedAlerts: 0,
     completedCheckpoints: 0,
     failedCheckpoints: 0,
+    learnedOutcomes: 0,
+    failedLearningUpdates: 0,
     lastCheckpointAt: null,
     healthy: false,
     lastError: null,
@@ -182,6 +191,47 @@ export function createNarrativeOutcomeTracker({
       });
       state.completedCheckpoints += 1;
       state.lastCheckpointAt = observedAt;
+      if (onOutcome && entry.learningCandidateId) {
+        try {
+          const learning = await onOutcome({
+            candidateId: entry.learningCandidateId,
+            horizonMs: checkpointMs,
+            returnPercent,
+            adverseOutcome: false,
+            observedAt,
+          });
+          if (learning?.learned === true) state.learnedOutcomes += 1;
+          if (learning?.recommendation) {
+            await append({
+              schemaVersion: 1,
+              recordType: "the_lawyer_recommendation",
+              observedAt: iso(clock()),
+              alertId: entry.id,
+              candidateId: entry.learningCandidateId,
+              mint: entry.mint,
+              recommendation: learning.recommendation,
+              runtimeAuthority: false,
+            });
+          }
+        } catch (error) {
+          state.failedLearningUpdates += 1;
+          try {
+            await append({
+              schemaVersion: 1,
+              recordType: "the_lawyer_learning_failed",
+              observedAt: iso(clock()),
+              alertId: entry.id,
+              candidateId: entry.learningCandidateId,
+              mint: entry.mint,
+              checkpointMs,
+              reason: error instanceof Error ? error.message.slice(0, 300) : "learning failed",
+              runtimeAuthority: false,
+            });
+          } catch {
+            logger.error("[narrative-outcome] THE LAWYER learning failure could not be recorded");
+          }
+        }
+      }
       if (notify) {
         try {
           await deliver(outcomeAlert(entry, checkpointMs, snapshot, returnPercent));
@@ -270,6 +320,7 @@ export function createNarrativeOutcomeTracker({
     initialPriceUsd,
     initialPriceProvider,
     initialPriceObservedAt = alertedAt,
+    learningCandidateId = null,
   } = {}) {
     if (!started || stopped) throw new Error("outcome tracker is not running");
     if (typeof mint !== "string" || mint.trim() === "") {
@@ -289,6 +340,12 @@ export function createNarrativeOutcomeTracker({
       });
       return false;
     }
+    if (
+      learningCandidateId !== null &&
+      (typeof learningCandidateId !== "string" || learningCandidateId.trim() === "")
+    ) {
+      throw new TypeError("learningCandidateId must be a non-empty string or null");
+    }
     const id = `${mint.trim()}:${alertTimestamp}`;
     if (entries.some((entry) => entry.id === id)) return false;
     if (entries.length >= maximumEntries) {
@@ -305,6 +362,10 @@ export function createNarrativeOutcomeTracker({
       initialPriceProvider:
         typeof initialPriceProvider === "string" ? initialPriceProvider : "unknown",
       initialPriceObservedAt: iso(initialPriceObservedAt),
+      learningCandidateId:
+        typeof learningCandidateId === "string" && learningCandidateId.trim() !== ""
+          ? learningCandidateId.trim()
+          : null,
       pendingCheckpointsMs: [...checkpoints],
     });
     state.trackedAlerts += 1;

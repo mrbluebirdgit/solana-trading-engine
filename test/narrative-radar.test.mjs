@@ -397,3 +397,227 @@ test("sends the base alert when supplemental enrichment fails unexpectedly", asy
   );
   await radar.stop();
 });
+
+function deskMetrics(overrides = {}) {
+  return {
+    developerPercent: 3,
+    insiderPercent: 5,
+    bundledPercent: 8,
+    freshPercent: 20,
+    snipersPercent: 10,
+    rugPercent: 0.5,
+    phishingPercent: 0,
+    botTradingPercent: 95,
+    smartMoneyCount: 3,
+    holderCount: 60,
+    top10Percent: 18,
+    marketCapUsd: 40_000,
+    volume5mUsd: 20_000,
+    netInflow5mUsd: 4_000,
+    transactions5m: 100,
+    curveFillPercent: 10,
+    ...overrides,
+  };
+}
+
+test("enforces desk law before THE LAWYER ranks or an alert reaches the floor", async () => {
+  const records = [];
+  const alerts = [];
+  const ranked = [];
+  let lawyerStopped = false;
+  const evidence = {
+    schemaVersion: 1,
+    observedAt: NOW.toISOString(),
+    mint: "mint-1",
+    providers: [{
+      provider: "gmgn",
+      ok: true,
+      observation: {},
+      capabilities: ["desk_metrics"],
+      partialErrors: [],
+      error: null,
+      runtimeAuthority: false,
+    }],
+    market: { priceUsd: 0.001, priceProvider: "gmgn", runtimeAuthority: false },
+    deskMetrics: {
+      source: "gmgn",
+      sourceMethodVersion: "test.v1",
+      metrics: deskMetrics(),
+      missingFields: [],
+      invalidFields: [],
+      runtimeAuthority: false,
+    },
+    runtimeAuthority: false,
+  };
+  const radar = createNarrativeRadar({
+    config: config({
+      gmgnApiKey: "gmgn-key",
+      deskScoutEnabled: true,
+      theLawyerStatePath: "/tmp/the-lawyer-test.json",
+      narrativeOutcomeTrackingEnabled: false,
+    }),
+    append: async (record) => { records.push(record); },
+    deliver: async (alert) => { alerts.push(alert); return { messageId: 91 }; },
+    logger: { error: () => {} },
+    clock: () => NOW,
+    setTimeoutImpl: () => 1,
+    clearTimeoutImpl: () => {},
+    runPipelineImpl: async ({ index }) => {
+      index.ingestAttention([attention()]);
+      return {
+        configuredAdapterCount: 1,
+        successfulAdapterCount: 1,
+        configuredDiscoveryAdapterCount: 1,
+        successfulDiscoveryAdapterCount: 1,
+        configuredConfirmationAdapterCount: 0,
+        successfulConfirmationAdapterCount: 0,
+        acceptedSampleCount: 1,
+        narrativeCount: 1,
+        adapterResults: [{ name: "x", ok: true, samples: [attention()], error: null }],
+        matches: [],
+      };
+    },
+    enrichPumpMintImpl: async () => candidate(),
+    collectPumpStageImpl: async () => ({
+      mint: "mint-1",
+      venueStage: "pump_curve_active",
+      mintAuthority: "renounced",
+      freezeAuthority: "renounced",
+      source: "helius",
+      sourceMethodVersion: "test.v1",
+      observedAt: NOW.toISOString(),
+      cutoffSlot: 10,
+      runtimeAuthority: false,
+    }),
+    createProviderEnricherImpl: () => ({
+      start: async () => ({
+        configuredProviders: ["gmgn"],
+        providerReadiness: { gmgn: { ok: true } },
+        budgets: {},
+      }),
+      enrich: async () => evidence,
+      readPrice: async () => {},
+      snapshot: () => ({ configuredProviders: ["gmgn"] }),
+      stop: async () => {},
+    }),
+    createTheLawyerImpl: () => ({
+      start: async () => ({
+        lawVersion: "desk-filter-law.v1",
+        modelVersion: "test-lawyer.v1",
+        role: { name: "THE LAWYER" },
+        tradingFloorInstructions: ["SCOUT", "RISK", "THE LAWYER"],
+      }),
+      rank: async (input) => {
+        ranked.push(input);
+        return {
+          candidateId: input.candidateId,
+          rankScore: 77,
+          modelOutcomes: 4,
+          runtimeAuthority: false,
+        };
+      },
+      recordOutcome: async () => ({ learned: false }),
+      snapshot: () => ({ modelVersion: "test-lawyer.v1" }),
+      stop: async () => { lawyerStopped = true; },
+    }),
+  });
+  await radar.start();
+  await radar.observePumpMint({
+    mint: "mint-1",
+    eventSlot: 10,
+    venueStage: "pump_curve_active",
+    observedAt: NOW.toISOString(),
+  });
+  assert.equal(ranked.length, 1);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0].body, /desk law: RISK CLEAR · SCOUT PASS · curve/);
+  assert.match(alerts[0].body, /THE LAWYER rank: 77\.0\/100/);
+  assert.equal(records.some((record) => record.recordType === "desk_filter_decision"), true);
+  assert.equal(records.some((record) => record.recordType === "the_lawyer_ranking"), true);
+  await radar.stop();
+  assert.equal(lawyerStopped, true);
+});
+
+test("suppresses a candidate killed by the immutable risk caps", async () => {
+  const records = [];
+  let rankCalls = 0;
+  let alertCalls = 0;
+  const radar = createNarrativeRadar({
+    config: config({
+      gmgnApiKey: "gmgn-key",
+      deskScoutEnabled: true,
+      theLawyerStatePath: "/tmp/the-lawyer-kill-test.json",
+      narrativeOutcomeTrackingEnabled: false,
+    }),
+    append: async (record) => { records.push(record); },
+    deliver: async () => { alertCalls += 1; },
+    logger: { error: () => {} },
+    clock: () => NOW,
+    setTimeoutImpl: () => 1,
+    clearTimeoutImpl: () => {},
+    runPipelineImpl: async ({ index }) => {
+      index.ingestAttention([attention()]);
+      return {
+        configuredAdapterCount: 1,
+        successfulAdapterCount: 1,
+        configuredDiscoveryAdapterCount: 1,
+        successfulDiscoveryAdapterCount: 1,
+        configuredConfirmationAdapterCount: 0,
+        successfulConfirmationAdapterCount: 0,
+        acceptedSampleCount: 1,
+        narrativeCount: 1,
+        adapterResults: [{ name: "x", ok: true, samples: [attention()], error: null }],
+        matches: [],
+      };
+    },
+    enrichPumpMintImpl: async () => candidate(),
+    collectPumpStageImpl: async () => ({
+      mint: "mint-1",
+      venueStage: "pump_curve_active",
+      mintAuthority: "renounced",
+      freezeAuthority: "renounced",
+      runtimeAuthority: false,
+    }),
+    createProviderEnricherImpl: () => ({
+      start: async () => ({ configuredProviders: ["gmgn"], providerReadiness: {}, budgets: {} }),
+      enrich: async () => ({
+        observedAt: NOW.toISOString(),
+        providers: [{ provider: "gmgn", ok: true }],
+        market: { priceUsd: 0.001, priceProvider: "gmgn" },
+        deskMetrics: {
+          source: "gmgn",
+          sourceMethodVersion: "test.v1",
+          metrics: deskMetrics({ developerPercent: 5.01 }),
+          missingFields: [],
+          invalidFields: [],
+        },
+      }),
+      readPrice: async () => {},
+      snapshot: () => ({}),
+      stop: async () => {},
+    }),
+    createTheLawyerImpl: () => ({
+      start: async () => ({
+        lawVersion: "desk-filter-law.v1",
+        modelVersion: "test.v1",
+        role: {},
+        tradingFloorInstructions: [],
+      }),
+      rank: async () => { rankCalls += 1; },
+      recordOutcome: async () => {},
+      snapshot: () => ({}),
+      stop: async () => {},
+    }),
+  });
+  await radar.start();
+  await radar.observePumpMint({ mint: "mint-1", eventSlot: 10, observedAt: NOW.toISOString() });
+  assert.equal(rankCalls, 0);
+  assert.equal(alertCalls, 0);
+  assert.equal(radar.state().riskKills, 1);
+  assert.equal(
+    records.find((record) => record.recordType === "desk_filter_decision")
+      .decision.decision,
+    "RISK_KILL",
+  );
+  await radar.stop();
+});

@@ -1,4 +1,6 @@
 import { formatNarrativeAlert } from "../alerts/narrative-alert.mjs";
+import { composeDeskCandidate } from "../intelligence/desk-candidate.mjs";
+import { createTheLawyer } from "../intelligence/the-lawyer.mjs";
 import { enrichPumpMint } from "../narrative/mint-enrichment.mjs";
 import { NarrativeIndex } from "../narrative/index.mjs";
 import { createNarrativeOutcomeTracker } from "../narrative/outcome-tracker.mjs";
@@ -11,6 +13,7 @@ import { readNewsApiHeadlines } from "../../integrations/attention/newsapi.mjs";
 import { readRssFeeds } from "../../integrations/attention/rss.mjs";
 import { searchXRecent } from "../../integrations/attention/x-recent-search.mjs";
 import { readXTrends } from "../../integrations/attention/x-trends.mjs";
+import { collectPumpStageFromHelius } from "../../integrations/helius/pump-stage-collector.mjs";
 
 function safeError(error) {
   return error instanceof Error ? error.message.slice(0, 300) : "provider enrichment failed";
@@ -111,6 +114,9 @@ export function createNarrativeRadar({
   runPipelineImpl = runNarrativePipeline,
   createProviderEnricherImpl = createCandidateProviderEnricher,
   createOutcomeTrackerImpl = createNarrativeOutcomeTracker,
+  createTheLawyerImpl = createTheLawyer,
+  composeDeskCandidateImpl = composeDeskCandidate,
+  collectPumpStageImpl = collectPumpStageFromHelius,
   createBudgetImpl = createDailyRequestBudget,
 } = {}) {
   if (!config?.narrativeRadarEnabled) {
@@ -146,11 +152,18 @@ export function createNarrativeRadar({
   let timer = null;
   let stopped = false;
   let running = null;
+  let lawyerStarted = false;
   const hasCandidateProviders = Boolean(
     config.birdeyeApiKey || config.gmgnApiKey || config.solscanApiKey,
   );
   const providerEnricher = hasCandidateProviders
     ? createProviderEnricherImpl({ config, fetchImpl, clock })
+    : null;
+  if (config.deskScoutEnabled && (!providerEnricher || !config.gmgnApiKey)) {
+    throw new Error("desk scout requires read-only GMGN candidate evidence");
+  }
+  const lawyer = config.deskScoutEnabled
+    ? createTheLawyerImpl({ statePath: config.theLawyerStatePath, clock })
     : null;
   const outcomeTracker = hasCandidateProviders && config.narrativeOutcomeTrackingEnabled
     ? createOutcomeTrackerImpl({
@@ -163,6 +176,9 @@ export function createNarrativeRadar({
       clock,
       setTimeoutImpl,
       clearTimeoutImpl,
+      onOutcome: lawyer
+        ? (outcome) => lawyer.recordOutcome(outcome)
+        : null,
     })
     : null;
   const controller = new AbortController();
@@ -181,9 +197,14 @@ export function createNarrativeRadar({
     alertsSent: 0,
     providerEvidenceAttempts: 0,
     providerEvidenceSuccesses: 0,
+    deskHealthy: config.deskScoutEnabled ? false : true,
+    lawyerHealthy: config.deskScoutEnabled ? false : true,
+    deskPasses: 0,
+    deskSkips: 0,
+    riskKills: 0,
   };
 
-  async function handleMatch(match, observedAt) {
+  async function handleMatch(match, observedAt, suppliedStageEvidence = null) {
     state.matchesObserved += 1;
     await append({
       schemaVersion: 1,
@@ -220,6 +241,11 @@ export function createNarrativeRadar({
         if (evidence.providers.some((provider) => provider.ok)) {
           state.providerEvidenceSuccesses += 1;
         }
+        if (lawyer) {
+          state.deskHealthy = evidence.providers.some(
+            (provider) => provider.provider === "gmgn" && provider.ok,
+          );
+        }
         await append({
           schemaVersion: 1,
           recordType: "narrative_candidate_provider_evidence",
@@ -229,10 +255,12 @@ export function createNarrativeRadar({
           mint: match.mintCandidate.mint,
           providers: evidence.providers,
           market: evidence.market,
+          deskMetrics: evidence.deskMetrics ?? null,
           runtimeAuthority: false,
         });
       } catch (error) {
         if (controller.signal.aborted) throw error;
+        if (lawyer) state.deskHealthy = false;
         await append({
           schemaVersion: 1,
           recordType: "narrative_candidate_provider_evidence_failed",
@@ -246,11 +274,105 @@ export function createNarrativeRadar({
         logger.error(`[narrative] supplemental provider enrichment failed: ${safeError(error)}`);
       }
     }
+    let deskAssessment = null;
+    let lawyerRanking = null;
+    let learningCandidateId = null;
+    if (lawyer) {
+      let stageEvidence = suppliedStageEvidence;
+      if (!stageEvidence || stageEvidence.mint !== match.mintCandidate.mint) {
+        try {
+          stageEvidence = await collectPumpStageImpl(
+            config.heliusApiKey,
+            match.mintCandidate.mint,
+            {
+              fetchImpl,
+              now: clock,
+              minContextSlot: match.mintCandidate.eventSlot ?? null,
+              signal: controller.signal,
+            },
+          );
+        } catch (error) {
+          if (controller.signal.aborted) throw error;
+          state.deskHealthy = false;
+          await append({
+            schemaVersion: 1,
+            recordType: "desk_stage_evidence_failed",
+            observedAt: new Date(clock()).toISOString(),
+            narrativeId: match.narrative.id,
+            mint: match.mintCandidate.mint,
+            reason: safeError(error),
+            runtimeAuthority: false,
+          });
+          stageEvidence = null;
+        }
+      }
+      deskAssessment = composeDeskCandidateImpl({
+        stageEvidence,
+        deskMetrics: evidence?.deskMetrics ?? null,
+        observedAt: new Date(clock()).toISOString(),
+      });
+      if (deskAssessment.decision.decision === "RISK_KILL") state.riskKills += 1;
+      else if (deskAssessment.decision.decision === "SCOUT_SKIP") state.deskSkips += 1;
+      else state.deskPasses += 1;
+      await append({
+        schemaVersion: 1,
+        recordType: "desk_filter_decision",
+        observedAt: deskAssessment.observedAt,
+        narrativeId: match.narrative.id,
+        narrativeLabel: match.narrative.label,
+        mint: match.mintCandidate.mint,
+        venueStage: deskAssessment.venueStage,
+        evidence: deskAssessment.evidence,
+        metrics: deskAssessment.metrics,
+        decision: deskAssessment.decision,
+        runtimeAuthority: false,
+      });
+      if (!deskAssessment.decision.scoutEligible) return;
+
+      learningCandidateId = [
+        match.mintCandidate.mint,
+        match.narrative.id,
+        match.mintCandidate.observedAt,
+      ].join(":");
+      try {
+        lawyerRanking = await lawyer.rank({
+          candidateId: learningCandidateId,
+          decision: deskAssessment.decision,
+          metrics: deskAssessment.metrics,
+          observedAt: deskAssessment.observedAt,
+        });
+        state.lawyerHealthy = true;
+        await append({
+          schemaVersion: 1,
+          recordType: "the_lawyer_ranking",
+          observedAt: new Date(clock()).toISOString(),
+          narrativeId: match.narrative.id,
+          mint: match.mintCandidate.mint,
+          ranking: lawyerRanking,
+          runtimeAuthority: false,
+        });
+      } catch (error) {
+        state.lawyerHealthy = false;
+        await append({
+          schemaVersion: 1,
+          recordType: "the_lawyer_ranking_failed",
+          observedAt: new Date(clock()).toISOString(),
+          narrativeId: match.narrative.id,
+          mint: match.mintCandidate.mint,
+          reason: safeError(error),
+          runtimeAuthority: false,
+        });
+        logger.error(`[narrative] THE LAWYER ranking failed: ${safeError(error)}`);
+        return;
+      }
+    }
     const preparedAt = new Date(clock()).toISOString();
-    const alert = formatNarrativeAlert(match, evidence);
+    const alert = formatNarrativeAlert(match, evidence, deskAssessment, lawyerRanking);
+    let outcomeAnchorAt = preparedAt;
     if (config.notify) {
       const delivery = await deliver(alert);
       const deliveredAt = new Date(clock()).toISOString();
+      outcomeAnchorAt = deliveredAt;
       state.alertsSent += 1;
       const signalObservedMs = new Date(match.mintCandidate.observedAt).valueOf();
       const deliveredMs = new Date(deliveredAt).valueOf();
@@ -270,31 +392,32 @@ export function createNarrativeRadar({
         telegramMessageId: delivery?.messageId ?? null,
         runtimeAuthority: false,
       });
-      if (outcomeTracker) {
-        try {
-          await outcomeTracker.track({
-            mint: match.mintCandidate.mint,
-            narrativeLabel: match.narrative.label,
-            tokenName: match.mintCandidate.name,
-            tokenSymbol: match.mintCandidate.symbol,
-            alertedAt: deliveredAt,
-            initialPriceUsd: evidence?.market?.priceUsd,
-            initialPriceProvider: evidence?.market?.priceProvider,
-            initialPriceObservedAt: evidence?.observedAt ?? deliveredAt,
-          });
-        } catch (error) {
-          await append({
-            schemaVersion: 1,
-            recordType: "narrative_outcome_tracking_failed",
-            observedAt: new Date(clock()).toISOString(),
-            narrativeId: match.narrative.id,
-            narrativeLabel: match.narrative.label,
-            mint: match.mintCandidate.mint,
-            reason: safeError(error),
-            runtimeAuthority: false,
-          });
-          logger.error(`[narrative] outcome tracking failed: ${safeError(error)}`);
-        }
+    }
+    if (outcomeTracker) {
+      try {
+        await outcomeTracker.track({
+          mint: match.mintCandidate.mint,
+          narrativeLabel: match.narrative.label,
+          tokenName: match.mintCandidate.name,
+          tokenSymbol: match.mintCandidate.symbol,
+          alertedAt: outcomeAnchorAt,
+          initialPriceUsd: evidence?.market?.priceUsd,
+          initialPriceProvider: evidence?.market?.priceProvider,
+          initialPriceObservedAt: evidence?.observedAt ?? outcomeAnchorAt,
+          learningCandidateId,
+        });
+      } catch (error) {
+        await append({
+          schemaVersion: 1,
+          recordType: "narrative_outcome_tracking_failed",
+          observedAt: new Date(clock()).toISOString(),
+          narrativeId: match.narrative.id,
+          narrativeLabel: match.narrative.label,
+          mint: match.mintCandidate.mint,
+          reason: safeError(error),
+          runtimeAuthority: false,
+        });
+        logger.error(`[narrative] outcome tracking failed: ${safeError(error)}`);
       }
     }
   }
@@ -363,7 +486,13 @@ export function createNarrativeRadar({
     return running;
   }
 
-  async function observePumpMint({ mint, eventSlot, venueStage, observedAt } = {}) {
+  async function observePumpMint({
+    mint,
+    eventSlot,
+    venueStage,
+    stageEvidence = null,
+    observedAt,
+  } = {}) {
     const now = clock();
     const candidate = await enrichPumpMintImpl({
       heliusApiKey: config.heliusApiKey,
@@ -377,7 +506,9 @@ export function createNarrativeRadar({
     });
     const matches = index.matchesForMint(candidate);
     state.mintCount = index.mintCount;
-    for (const match of matches) await handleMatch(match, new Date(now).toISOString());
+    for (const match of matches) {
+      await handleMatch(match, new Date(now).toISOString(), stageEvidence);
+    }
     return matches;
   }
 
@@ -399,6 +530,9 @@ export function createNarrativeRadar({
     }
     if (providerEnricher) {
       const providerState = await providerEnricher.start();
+      if (lawyer) {
+        state.deskHealthy = providerState.providerReadiness?.gmgn?.ok === true;
+      }
       await append({
         schemaVersion: 1,
         recordType: "narrative_provider_enrichment_started",
@@ -406,6 +540,21 @@ export function createNarrativeRadar({
         configuredProviders: providerState.configuredProviders,
         providerReadiness: providerState.providerReadiness,
         budgets: providerState.budgets,
+        runtimeAuthority: false,
+      });
+    }
+    if (lawyer) {
+      const lawyerState = await lawyer.start();
+      lawyerStarted = true;
+      state.lawyerHealthy = true;
+      await append({
+        schemaVersion: 1,
+        recordType: "the_lawyer_started",
+        observedAt: new Date(clock()).toISOString(),
+        lawVersion: lawyerState.lawVersion,
+        modelVersion: lawyerState.modelVersion,
+        role: lawyerState.role,
+        tradingFloorInstructions: lawyerState.tradingFloorInstructions,
         runtimeAuthority: false,
       });
     }
@@ -422,6 +571,7 @@ export function createNarrativeRadar({
     controller.abort();
     try { await running; } catch {}
     await outcomeTracker?.stop();
+    if (lawyerStarted) await lawyer.stop();
     await providerEnricher?.stop();
     await Promise.all(Object.values(attentionBudgets).map((budget) => budget.flush()));
   }
@@ -435,6 +585,7 @@ export function createNarrativeRadar({
       ...state,
       providerEnrichment: providerEnricher?.snapshot() ?? null,
       outcomeTracking: outcomeTracker?.snapshot() ?? null,
+      lawyer: lawyerStarted ? lawyer.snapshot() : null,
       attentionBudgets: Object.freeze(Object.fromEntries(
         Object.entries(attentionBudgets).map(([provider, budget]) => [
           provider,

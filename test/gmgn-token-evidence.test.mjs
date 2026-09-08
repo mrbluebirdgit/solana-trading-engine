@@ -12,18 +12,30 @@ const rawToken = {
   symbol: "EX",
   liquidity: "30000",
   holder_count: 420,
+  market_cap: "40000",
   creation_timestamp: 1788606901,
+  launchpad_progress: "0.1",
+  suspected_insider_hold_rate: "0.02",
+  rug_ratio: "0.005",
   launchpad_platform: "Pump.fun",
   price: {
     price: "0.002",
     volume_5m: "9000",
+    buy_volume_5m: "6000",
+    sell_volume_5m: "3000",
+    swaps_5m: 60,
   },
-  pool: { exchange: "pump" },
+  pool: { exchange: "pump", creation_timestamp: 1788607000 },
   stat: {
+    holder_count: 420,
     top_10_holder_rate: "0.18",
+    creator_hold_rate: "0.03",
     dev_team_hold_rate: "0.025",
     top_bundler_trader_percentage: "0.07",
     top_rat_trader_percentage: "0.02",
+    fresh_wallet_rate: "0.2",
+    top70_sniper_hold_rate: "0.1",
+    top_entrapment_trader_percentage: "0",
     bot_degen_rate: "0.1",
   },
   wallet_tags_stat: {
@@ -80,6 +92,9 @@ test("invokes only the pinned GMGN read-only token command with an isolated envi
   assert.equal(evidence.observation.behavior.smartMoneyParticipants, 5);
   assert.equal(evidence.observation.behavior.providerBundledTradingVolumeShare, 0.07);
   assert.equal(evidence.observation.sourceMethodVersion, "gmgn-token.info@cli-1.6.1");
+  assert.equal(evidence.deskMetrics.metrics.developerPercent, 3);
+  assert.equal(evidence.deskMetrics.metrics.netInflow5mUsd, 3_000);
+  assert.equal(evidence.deskMetrics.runtimeAuthority, false);
 });
 
 test("uses GMGN as a timestamped price fallback", async () => {

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { normalizeGmgnToken } from "./normalize.mjs";
+import { normalizeGmgnDeskMetrics } from "./desk-metrics.mjs";
 
 const execFileAsync = promisify(execFile);
 const CLI_VERSION = "1.6.1";
@@ -221,7 +222,14 @@ export async function readGmgnCandidateEvidence({
   return Object.freeze({
     provider: "gmgn",
     observation,
-    capabilities: Object.freeze(["market", "holders", "wallet_labels", "bundler_labels"]),
+    deskMetrics: normalizeGmgnDeskMetrics(payload),
+    capabilities: Object.freeze([
+      "market",
+      "holders",
+      "wallet_labels",
+      "bundler_labels",
+      "desk_filters",
+    ]),
     partialErrors: Object.freeze([]),
     runtimeAuthority: false,
   });

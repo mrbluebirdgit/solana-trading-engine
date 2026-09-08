@@ -188,6 +188,16 @@ export function parseObserverRuntime({
   if (nonEmpty(env.GMGN_PRIVATE_KEY)) {
     throw new Error("GMGN_PRIVATE_KEY must not be configured in the observe-only worker");
   }
+  for (const forbidden of [
+    "AGE_SECRET_KEY",
+    "WALLET_PRIVATE_KEY",
+    "AXIOM_API_KEY",
+    "PHOTON_API_KEY",
+  ]) {
+    if (nonEmpty(env[forbidden])) {
+      throw new Error(`${forbidden} must not be configured in this worker`);
+    }
+  }
   const narrativeRssFeeds = httpsUrlList(
     env.NARRATIVE_RSS_FEEDS,
     "NARRATIVE_RSS_FEEDS",
@@ -297,6 +307,17 @@ export function parseObserverRuntime({
     throw new TypeError("NEWSAPI_DAILY_REQUEST_RESERVE must be smaller than its limit");
   }
   const hasCandidateProviders = Boolean(birdeyeApiKey || gmgnApiKey || solscanApiKey);
+  const deskScoutEnabled = booleanControl(
+    env.DESK_SCOUT_ENABLED,
+    "DESK_SCOUT_ENABLED",
+    Boolean(narrativeRadarEnabled && gmgnApiKey),
+  );
+  if (deskScoutEnabled && !narrativeRadarEnabled) {
+    throw new Error("DESK_SCOUT_ENABLED requires NARRATIVE_RADAR_ENABLED");
+  }
+  if (deskScoutEnabled && !gmgnApiKey) {
+    throw new Error("DESK_SCOUT_ENABLED requires GMGN_API_KEY for the locked desk fields");
+  }
   const narrativeOutcomeTrackingEnabled = booleanControl(
     env.NARRATIVE_OUTCOME_TRACKING_ENABLED,
     "NARRATIVE_OUTCOME_TRACKING_ENABLED",
@@ -329,6 +350,8 @@ export function parseObserverRuntime({
     birdeyeApiKey,
     gmgnApiKey,
     solscanApiKey,
+    deskScoutEnabled,
+    theLawyerStatePath: path.join(stateDirectory, "the-lawyer.v1.json"),
     candidateProviderTimeoutMs: boundedInteger(
       env.CANDIDATE_PROVIDER_TIMEOUT_MS,
       "CANDIDATE_PROVIDER_TIMEOUT_MS",

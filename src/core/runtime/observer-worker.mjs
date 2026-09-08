@@ -311,6 +311,12 @@ export async function startObserverWorker({
         narrativeState?.providerEnrichment ?? null,
       narrativeOutcomeTracking:
         narrativeState?.outcomeTracking ?? null,
+      deskPasses: narrativeState?.deskPasses ?? 0,
+      deskSkips: narrativeState?.deskSkips ?? 0,
+      riskKills: narrativeState?.riskKills ?? 0,
+      theLawyer: narrativeState?.lawyer ?? null,
+      deskHealthy: narrativeState?.deskHealthy ?? true,
+      lawyerHealthy: narrativeState?.lawyerHealthy ?? true,
       narrativeAttentionBudgets:
         narrativeState?.attentionBudgets ?? null,
       queuedEvents: ingressState.queued + enrichmentState.queued,
@@ -650,6 +656,7 @@ export async function startObserverWorker({
             mint,
             eventSlot: event.slot,
             venueStage: observation.stage?.venueStage ?? null,
+            stageEvidence: observation.stage ?? null,
             observedAt: ingestedAt,
           });
         } catch (error) {

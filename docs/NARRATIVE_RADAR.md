@@ -130,6 +130,7 @@ issues, pull requests, screenshots, and chat.
 ```dotenv
 NARRATIVE_RADAR_ENABLED=true
 GENERIC_OPPORTUNITY_ALERTS_ENABLED=false
+DESK_SCOUT_ENABLED=
 X_BEARER_TOKEN=
 LUNARCRUSH_API_KEY=
 LUNARCRUSH_PLAN=hobby
@@ -163,6 +164,12 @@ NARRATIVE_OUTCOME_TRACKING_ENABLED=true
 NARRATIVE_OUTCOME_NOTIFICATIONS_ENABLED=true
 NARRATIVE_OUTCOME_CHECKPOINTS_MS=60000,300000,900000,3600000
 ```
+
+When narrative discovery and GMGN are both configured, the desk scout defaults
+on. Threshold-clearing narrative matches must then pass the immutable desk law
+before delivery; THE LAWYER ranks only those passes and learns from their
+15-minute tracked result. See [Desk Filter Law](DESK_FILTER_LAW.md) and
+[THE LAWYER](THE_LAWYER.md).
 
 At least one production-eligible source—X API, a social-enabled LunarCrush plan,
 a production NewsAPI plan, or an approved RSS feed—is required when the radar is
